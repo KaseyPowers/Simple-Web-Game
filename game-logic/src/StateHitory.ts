@@ -1,4 +1,4 @@
-import { ActionTypeBase } from "./interfaces";
+import { ActionTypeBase, OnChangeType } from "./interfaces";
 
 interface HistoryStep<G, A extends ActionTypeBase> {
   state?: G;
@@ -10,7 +10,12 @@ type StateFromActionType<G, A extends ActionTypeBase> = <G, A>(
   action: A
 ) => G | Promise<G>;
 
-type OnChangeType = () => void;
+export interface StateHistoryOptions<G, A extends ActionTypeBase> {
+  stateFromAction: StateFromActionType<G, A>;
+  onChange: OnChangeType;
+  initialState: G;
+  initializationAction?: A;
+}
 
 // TODO: make gamestate an argument thing with the <>
 class StateHistory<G, A extends ActionTypeBase> {
@@ -30,12 +35,7 @@ class StateHistory<G, A extends ActionTypeBase> {
     onChange,
     initialState,
     initializationAction,
-  }: {
-    stateFromAction: StateFromActionType<G, A>;
-    onChange: OnChangeType;
-    initialState: G;
-    initializationAction?: A;
-  }) {
+  }: StateHistoryOptions<G, A>) {
     // initialize the history array
     this.stateHistory = [
       {
@@ -122,6 +122,7 @@ class StateHistory<G, A extends ActionTypeBase> {
     return this.processHistory();
   }
 
+  // initiate the history promise that will run until the state history is done calculating
   private processingHistoryPromise: Promise<void>;
   checkHistory(): Promise<void> {
     if (!this.processingHistoryPromise) {
@@ -154,3 +155,5 @@ class StateHistory<G, A extends ActionTypeBase> {
     this.checkHistory();
   }
 }
+
+export default StateHistory;
