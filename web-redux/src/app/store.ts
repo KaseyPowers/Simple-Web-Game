@@ -1,5 +1,8 @@
 import { configureStore, ThunkAction, Action } from '@reduxjs/toolkit';
+
 import counterReducer from '../features/counter/counterSlice';
+
+import gameStatusReducer from "./game_status/game_status_slice";
 import playerProfilesReducer from '../features/players/player_profiles_slice';
 
 
@@ -10,6 +13,7 @@ import playerProfilesReducer from '../features/players/player_profiles_slice';
 export const store = configureStore({
   reducer: {
     counter: counterReducer,
+    gameStatus: gameStatusReducer,
     players: playerProfilesReducer
   },
 });

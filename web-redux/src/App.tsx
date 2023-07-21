@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Paper } from "@mui/material";
+import { Paper } from "@mui/material";
 import Grid from "@mui/material/Unstable_Grid2";
 
 import { Counter } from "./features/counter/Counter";

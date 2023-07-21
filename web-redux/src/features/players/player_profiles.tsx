@@ -9,17 +9,112 @@ import {
   Switch,
   TextField,
   IconButton,
+  Button,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import Grid from "@mui/material/Unstable_Grid2";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import SendIcon from "@mui/icons-material/Send";
+
+import CheckIcon from "@mui/icons-material/Check";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
 import { useAppSelector, useAppDispatch } from "../../app/hooks";
 import {
   PlayerStatuses,
-  addNewPlayerProfile,
+  PlayerStatusTypes,
+  addPlayer,
+  setPlayerStatus,
   playerProfiles,
 } from "./player_profiles_slice";
+
+function PlayerStatusMenu({
+  playerId,
+  status,
+  onChange,
+}: {
+  playerId: string;
+  status: PlayerStatusTypes;
+  onChange: (status: PlayerStatusTypes) => void;
+}) {
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const onStatusChange = (newStatus: PlayerStatusTypes) => {
+    onChange(newStatus);
+    handleClose();
+  };
+
+  /**
+   * Icon to use for each status:
+   * watching: VisibilityIcon
+   * playing: PlayArrowIcon
+   * waiting: CheckIcon
+   */
+  let useIcon = null;
+  let iconColor: React.ComponentProps<typeof IconButton>["color"] = undefined;
+  switch (status) {
+    case PlayerStatuses.watching:
+      useIcon = <VisibilityIcon />;
+      iconColor = "info";
+      break;
+    case PlayerStatuses.waiting:
+      useIcon = <CheckIcon />;
+      iconColor = "success";
+      break;
+    case PlayerStatuses.playing:
+      useIcon = <PlayArrowIcon />;
+      iconColor = "primary";
+      break;
+  }
+  /** TODO: have the menu items contextual */
+  return (
+    <>
+      <IconButton
+        id={`${playerId}-status-button`}
+        aria-controls={open ? "basic-menu" : undefined}
+        aria-haspopup="true"
+        aria-expanded={open ? "true" : undefined}
+        onClick={handleClick}
+        color={iconColor}
+      >
+        {useIcon}
+      </IconButton>
+      <Menu
+        id={`${playerId}-basic-menu`}
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleClose}
+        MenuListProps={{
+          "aria-labelledby": "basic-button",
+        }}
+      >
+        {status !== PlayerStatuses.waiting && (
+          <MenuItem onClick={() => onStatusChange(PlayerStatuses.waiting)}>
+            Ready To Play
+          </MenuItem>
+        )}
+        {status !== PlayerStatuses.watching && (
+          <MenuItem onClick={() => onStatusChange(PlayerStatuses.watching)}>
+            Watch
+          </MenuItem>
+        )}
+        {status !== PlayerStatuses.playing && (
+          <MenuItem onClick={() => onStatusChange(PlayerStatuses.playing)}>
+            Playing
+          </MenuItem>
+        )}
+      </Menu>
+    </>
+  );
+}
 
 export function PlayerProfiles() {
   const players = useAppSelector(playerProfiles);
@@ -48,17 +143,13 @@ export function PlayerProfiles() {
                 <Avatar sx={{ width: 24, height: 24 }} />
               </ListItemAvatar>
               <ListItemText id={`player-label-${id}`} primary={name} />
-              {status === PlayerStatuses.playing ? (
-                <PlayArrowIcon color="success" />
-              ) : (
-                <Switch
-                  edge="end"
-                  checked={status === PlayerStatuses.waiting}
-                  inputProps={{
-                    "aria-labelledby": `player-label-${id}`,
-                  }}
-                />
-              )}
+              <PlayerStatusMenu
+                playerId={id}
+                status={status}
+                onChange={(newStatus) => {
+                  dispatch(setPlayerStatus(id, newStatus));
+                }}
+              />
             </ListItem>
           ))}
         </List>
@@ -83,7 +174,7 @@ export function PlayerProfiles() {
             if (errorHelper) {
               console.error("click event still on when button disabled");
             }
-            dispatch(addNewPlayerProfile({ name: playerToAdd }));
+            dispatch(addPlayer({ name: playerToAdd }));
             setPlayerToAdd("");
           }}
         >

@@ -15,11 +15,9 @@ import type {
 import { createNormalized, generateUUID } from "../../utils";
 
 const testInitPlayers: PlayerProfile[] = [];
-const testInitPlayerIds = (): PlayerProfile["id"][] => testInitPlayers.map(player => player.id);
-
-testInitPlayers.push(createPlayerProfile({ name: "A-Test-Name" }, testInitPlayerIds()));
-testInitPlayers.push(createPlayerProfile({ name: "A-Test-B-Name" }, testInitPlayerIds()));
-testInitPlayers.push(createPlayerProfile({ name: "Wow-Testing-A-Watcher-Name", status: PlayerStatuses.watching, }, testInitPlayerIds()));
+testInitPlayers.push(createPlayerProfile({ name: "A-Test-Name" }));
+testInitPlayers.push(createPlayerProfile({ name: "A-Test-B-Name" }));
+testInitPlayers.push(createPlayerProfile({ name: "Wow-Testing-A-Watcher-Name", status: PlayerStatuses.watching, }));
 
 describe('player profiles reducer', () => {
   const testInitialState: PlayerProfileState = createNormalized(testInitPlayers);
