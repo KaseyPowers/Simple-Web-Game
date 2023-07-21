@@ -1,27 +1,38 @@
-import React from 'react';
-import Box from '@mui/material/Box';
-import Grid from '@mui/material/Unstable_Grid2';
+import React from "react";
+import { Box, Paper } from "@mui/material";
+import Grid from "@mui/material/Unstable_Grid2";
 
-import { Counter } from './features/counter/Counter';
+import { Counter } from "./features/counter/Counter";
+import { PlayerProfiles } from "./features/players/player_profiles";
 
 function App() {
   return (
-    <Box sx={{ flexGrow: 1, p: 2, height: "100vh", }}>
-  <Grid container spacing={2} sx={{    
-    '--Grid-borderWidth': '1px',
-    borderTop: 'var(--Grid-borderWidth) solid',
-    borderLeft: 'var(--Grid-borderWidth) solid',
-    borderColor: 'divider',
-    '& > div': {
-      borderRight: 'var(--Grid-borderWidth) solid',
-      borderBottom: 'var(--Grid-borderWidth) solid',
-      borderColor: 'divider',
-    },
-  }}
-  >
-    <Grid xs="auto">TODO: Sidebar</Grid>
-    <Grid xs>
-    <Counter />
+    <Grid
+      container
+      disableEqualOverflow
+      spacing={2}
+      alignItems="stretch"
+      sx={{
+        height: "100vh",
+        padding: 2,
+        // "--Grid-borderWidth": "1px",
+        // borderTop: "var(--Grid-borderWidth) solid",
+        // borderLeft: "var(--Grid-borderWidth) solid",
+        // borderColor: "divider",
+        // "& > div": {
+        //   borderRight: "var(--Grid-borderWidth) solid",
+        //   borderBottom: "var(--Grid-borderWidth) solid",
+        //   borderColor: "divider",
+        // },
+      }}
+    >
+      <Grid xs="auto">
+        <Paper sx={{ height: "100%", p: 2 }}>
+          <PlayerProfiles />
+        </Paper>
+      </Grid>
+      <Grid xs>
+        <Counter />
         <p>
           Edit <code>src/App.tsx</code> and save to reload.
         </p>
@@ -63,12 +74,9 @@ function App() {
             React Redux
           </a>
         </span>
-
+      </Grid>
     </Grid>
-  </Grid>
-  </Box>
   );
-  
 }
 
 export default App;

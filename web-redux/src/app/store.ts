@@ -1,5 +1,6 @@
 import { configureStore, ThunkAction, Action } from '@reduxjs/toolkit';
 import counterReducer from '../features/counter/counterSlice';
+import playerProfilesReducer from '../features/players/player_profiles_slice';
 
 
 /** 
@@ -9,6 +10,7 @@ import counterReducer from '../features/counter/counterSlice';
 export const store = configureStore({
   reducer: {
     counter: counterReducer,
+    players: playerProfilesReducer
   },
 });
 
