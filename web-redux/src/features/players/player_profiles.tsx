@@ -6,10 +6,8 @@ import {
   ListItemAvatar,
   ListItemText,
   Avatar,
-  Switch,
   TextField,
   IconButton,
-  Button,
   Menu,
   MenuItem,
 } from "@mui/material";
@@ -26,7 +24,7 @@ import {
   PlayerStatusTypes,
   addPlayer,
   setPlayerStatus,
-  playerProfiles,
+  selectPlayerProfiles,
 } from "./player_profiles_slice";
 
 function PlayerStatusMenu({
@@ -117,7 +115,7 @@ function PlayerStatusMenu({
 }
 
 export function PlayerProfiles() {
-  const players = useAppSelector(playerProfiles);
+  const players = useAppSelector(selectPlayerProfiles);
   const dispatch = useAppDispatch();
   const [playerToAdd, setPlayerToAdd] = useState("");
   const errorHelper = useMemo(

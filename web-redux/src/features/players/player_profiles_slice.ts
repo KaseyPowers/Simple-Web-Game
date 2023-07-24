@@ -1,8 +1,9 @@
-import { createSlice, PayloadAction, nanoid } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, nanoid, createSelector } from '@reduxjs/toolkit';
 import { AppThunk, RootState } from '../../app/store';
-import { gameStatus, GameStatuses } from "../../app/game_status/game_status_slice";
+import { selectGameStatus } from "../../app/game_state/utils";
 
-import type { BaseUUIDItem } from "../../utils";
+
+import type { BaseUUIDItem, MakeInputType } from "../../utils";
 import { ObjectValues, NormalizedState, createNormalized } from '../../utils';
 
 export const PlayerStatuses = {
@@ -18,7 +19,7 @@ export interface PlayerProfile extends BaseUUIDItem {
   name: string
 }
 
-export type InputPlayerProfile = Omit<PlayerProfile, "id" | "status"> & Partial<Pick<PlayerProfile, "status">>;
+export type InputPlayerProfile = MakeInputType<PlayerProfile, "id", "status">;
 
 /** Function to generate a new player profile, existing Ids just forced to default to empty array for consistency */
 export function createPlayerProfile(input: InputPlayerProfile): PlayerProfile {
@@ -63,16 +64,18 @@ export const { addPlayer, updateStatuses } = playerProfilesSlice.actions;
 /**
  * This function is a selector used to convert the player profiles state back into an array, using the order in the allIds array.
  */
-export const playerProfiles = (state: RootState) => {
-  const { byId, allIds } = state.players;
+const selectPlayerProfilesState = (state: RootState) => state.players;
+const selectPlayerProfilesById = createSelector(selectPlayerProfilesState, state => state.byId);
+const selectPlayerProfileIds = createSelector(selectPlayerProfilesState, state => state.allIds);
+export const selectPlayerProfiles = createSelector([selectPlayerProfilesById, selectPlayerProfileIds], (byId, allIds) => {
   return allIds.map(id => byId[id]);
-}
+})
 
 /** TODO: a selector with game state to check for exceptions when allowing/blocking users switching to playing */
 export const setPlayerStatus = (players: PlayerProfile["id"] | PlayerProfile["id"][], status: PlayerStatusTypes): AppThunk =>
   (dispatch, getState) => {
     const playersState = getState().players;
-    const isPlaying = gameStatus(getState()) !== GameStatuses.preparing;
+    const isPlaying = selectGameStatus(getState());
 
     let toSet: PlayerProfile["id"][] = [];
     // first get ids into an array

@@ -1,3 +1,4 @@
+import { nanoid } from '@reduxjs/toolkit';
 import playerProfilesReducer, {
   initialState,
   createPlayerProfile,
@@ -12,7 +13,7 @@ import type {
 } from "./player_profiles_slice";
 
 
-import { createNormalized, generateUUID } from "../../utils";
+import { createNormalized } from "../../utils";
 
 const testInitPlayers: PlayerProfile[] = [];
 testInitPlayers.push(createPlayerProfile({ name: "A-Test-Name" }));
@@ -33,7 +34,7 @@ describe('player profiles reducer', () => {
   /** Note: new players will have (usually) random UUIDs so can't do a true equality check */
   it('should handle addPlayer (with just name, default status)', () => {
     const newPlayer = {
-      id: generateUUID(testInitialState.allIds),
+      id: nanoid(),
       name: "test-adding-name",
       status: PlayerStatuses.waiting
     };

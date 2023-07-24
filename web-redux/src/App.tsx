@@ -4,6 +4,7 @@ import Grid from "@mui/material/Unstable_Grid2";
 
 import { Counter } from "./features/counter/Counter";
 import { PlayerProfiles } from "./features/players/player_profiles";
+import GameStateDisplay from "./game_state_component";
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
         </Paper>
       </Grid>
       <Grid xs>
+        <GameStateDisplay />
         <Counter />
         <p>
           Edit <code>src/App.tsx</code> and save to reload.
