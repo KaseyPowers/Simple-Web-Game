@@ -5,12 +5,9 @@ import { gameStateName, BaseGameState } from "./game_state/type";
 
 import { getGameStateSlice, starterGameState, sliceIds } from "./game_state/slices";
 
-import counterReducer from '../features/counter/counterSlice';
-
 import playerProfilesReducer from '../features/players/player_profiles_slice';
 
 const staticReducers = {
-  counter: counterReducer,
   players: playerProfilesReducer
 };
 
