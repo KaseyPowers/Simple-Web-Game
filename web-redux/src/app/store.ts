@@ -1,11 +1,17 @@
 import type { Reducer } from "redux";
 import { configureStore, ThunkAction, Action, combineReducers } from '@reduxjs/toolkit';
 
-import { gameStateName, BaseGameState } from "./game_state/type";
-
-import { getGameStateSlice, starterGameState, sliceIds } from "./game_state/slices";
-
 import playerProfilesReducer from '../features/players/player_profiles_slice';
+
+import { gameStateName, BaseGameState } from "../game_state/type";
+
+import emptyGameObj from "../game_state/games/empty";
+
+import type { sliceIds } from "../game_state/games/all_states";
+import allGameStates from "../game_state/games/all_states";
+
+
+const emptyGameId = emptyGameObj.id;
 
 const staticReducers = {
   players: playerProfilesReducer
@@ -20,7 +26,7 @@ type ReducerMap = typeof staticReducers & {
 
 let reducerMap: ReducerMap = {
   ...staticReducers,
-  [gameStateName]: getGameStateSlice(starterGameState).reducer
+  [gameStateName]: allGameStates[emptyGameId].slice.reducer
 };
 
 /** 
@@ -37,14 +43,13 @@ export function setGameStateReducer(gameStateId: sliceIds) {
     console.warn("Game state already using this id");
     return;
   }
-  const slice = getGameStateSlice(gameStateId);
+  const slice = allGameStates[gameStateId].slice;
 
   reducerMap = { ...reducerMap, [gameStateName]: slice.reducer };
   /** TODO: figure out what happens with state while swapping between reducers of the game key */
   store.replaceReducer(combineReducers(reducerMap));
   if (slice.actions.reset) {
-    store.dispatch(slice.actions.reset());
-    // store.dispatch(slice.actions.reset(slice.getInitialState()));
+    store.dispatch(slice.actions.reset({}));
   }
   return store;
 }

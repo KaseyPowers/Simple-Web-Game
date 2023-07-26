@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction, nanoid, createSelector } from '@reduxjs/toolkit';
 import { AppThunk, RootState } from '../../app/store';
-import { selectGameStatus } from "../../app/game_state/utils";
+import { GameStatuses } from '../../game_state/type';
+import { selectGameStatus } from "../../game_state/utils";
 
 
 import type { BaseUUIDItem, MakeInputType } from "../../utils";
@@ -67,15 +68,14 @@ export const { addPlayer, updateStatuses } = playerProfilesSlice.actions;
 const selectPlayerProfilesState = (state: RootState) => state.players;
 const selectPlayerProfilesById = createSelector(selectPlayerProfilesState, state => state.byId);
 const selectPlayerProfileIds = createSelector(selectPlayerProfilesState, state => state.allIds);
-export const selectPlayerProfiles = createSelector([selectPlayerProfilesById, selectPlayerProfileIds], (byId, allIds) => {
-  return allIds.map(id => byId[id]);
-})
+export const selectPlayerProfiles = createSelector([selectPlayerProfilesById, selectPlayerProfileIds], (byId, allIds) => allIds.map(id => byId[id]));
+export const selectWaitingPlayers = createSelector([selectPlayerProfiles], (players) => players.filter(player => player.status === PlayerStatuses.waiting));
 
 /** TODO: a selector with game state to check for exceptions when allowing/blocking users switching to playing */
 export const setPlayerStatus = (players: PlayerProfile["id"] | PlayerProfile["id"][], status: PlayerStatusTypes): AppThunk =>
   (dispatch, getState) => {
     const playersState = getState().players;
-    const isPlaying = selectGameStatus(getState());
+    const isPlaying = selectGameStatus(getState()) === GameStatuses.playing
 
     let toSet: PlayerProfile["id"][] = [];
     // first get ids into an array

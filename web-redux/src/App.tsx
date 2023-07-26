@@ -3,7 +3,7 @@ import { Paper } from "@mui/material";
 import Grid from "@mui/material/Unstable_Grid2";
 
 import { PlayerProfiles } from "./features/players/player_profiles";
-import GameStateDisplay from "./game_state_component";
+import FullGameStateView from "./game_state/components/full_game_view";
 
 function App() {
   return (
@@ -32,7 +32,7 @@ function App() {
         </Paper>
       </Grid>
       <Grid xs>
-        <GameStateDisplay />
+        <FullGameStateView />
       </Grid>
     </Grid>
   );
