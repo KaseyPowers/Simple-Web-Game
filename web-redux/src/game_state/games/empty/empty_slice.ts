@@ -1,10 +1,12 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-import { createResetReducer } from "../utils";
+import { startGameAction, resetGameAction } from "../utils";
 import { GameStatuses, BaseGameState, gameStateName } from "../../type";
 
+export const id = "null" as const;
+
 const emptyInitialState: BaseGameState = {
-    id: "null",
+    id,
     name: "~empty~",
     status: GameStatuses.waiting,
     players: [],
@@ -20,7 +22,26 @@ const emptyStateSlice = createSlice({
     name: gameStateName,
     initialState: emptyInitialState,
     reducers: {
-        reset: createResetReducer(emptyInitialState),
+    },
+    extraReducers(builder) {
+        builder.addCase(startGameAction, (state, action) => {
+            state.status = GameStatuses.playing;
+            state.players = action.payload;
+        });
+        builder.addCase(resetGameAction, (state, action) => {
+            if (action.payload.keepPlaying && state.status !== GameStatuses.waiting) {
+                const { status, players } = state;
+                return {
+                    ...emptyInitialState,
+                    status,
+                    players
+                }
+            }
+
+            return {
+                ...emptyInitialState
+            };
+        });
     },
 });
 

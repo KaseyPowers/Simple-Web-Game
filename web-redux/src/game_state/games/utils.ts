@@ -1,9 +1,12 @@
-import type { PayloadAction, CaseReducer } from "@reduxjs/toolkit";
-import type { PartPartial } from "../../utils";
-import type { BaseGameState } from "../type";
-import type { GameObj } from "./type";
+import { createAction, createSelector } from "@reduxjs/toolkit";
 
-export function createGameObj<T extends BaseGameState>(inputObj: PartPartial<GameObj<T>, "id" | "name">): GameObj<T> {
+import { AppThunk } from "../../app/store";
+import type { UUID } from "../../utils";
+import type { BaseGameState } from "../type";
+import { gameStateName, GameStatuses } from "../type";
+import type { GameObj, GameObjInput } from "./type";
+
+export function createGameObj<T extends BaseGameState>(inputObj: GameObjInput<T>): Readonly<GameObj<T>> {
 
     const { slice, Component, View, ...rest } = inputObj;
 
@@ -22,23 +25,36 @@ export function createGameObj<T extends BaseGameState>(inputObj: PartPartial<Gam
         };
     }
     if (View) {
+        if ("Playing" in View) {
+            return {
+                ...base,
+                View
+            };
+        }
         return {
             ...base,
-            View
+            View: {
+                Playing: View
+            }
         };
     }
     throw new Error("Must define a Component or View");
 }
 
-export function createResetReducer<T extends BaseGameState>(initState: T): CaseReducer<T, PayloadAction<{ keepPlayers?: boolean }>> {
-    return (state, action) => {
-        // payload to reset 
-        if (action.payload.keepPlayers) {
-            return {
-                ...initState,
-                players: state.players
-            };
-        }
-        return initState;
-    }
+export const startGameAction = createAction<UUID[]>([gameStateName, "startGame"].join("/"));
+
+export const resetGameAction = createAction<{ keepPlaying: boolean, resetPlayers: UUID[] }>([gameStateName, "resetGame"].join("/"));
+
+export const resetGame = (keepPlaying: boolean): AppThunk => (dispatch, getState) => {
+
+    const currentGameState = getState()[gameStateName];
+
+    /** Fot not-waiting to catch playing+finished */
+    const currentlyPlaying = currentGameState.status !== GameStatuses.waiting;
+    const useKeepPlaying = keepPlaying && currentlyPlaying;
+
+    dispatch(resetGameAction({
+        keepPlaying: useKeepPlaying,
+        resetPlayers: useKeepPlaying ? [] : currentGameState.players
+    }));
 }

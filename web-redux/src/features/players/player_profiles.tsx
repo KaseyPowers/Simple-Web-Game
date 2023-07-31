@@ -24,8 +24,8 @@ import {
   PlayerStatusTypes,
   addPlayer,
   setPlayerStatus,
-  selectPlayerProfiles,
 } from "./player_profiles_slice";
+import { selectPlayerProfiles } from "./player_profiles_selectors";
 
 function PlayerStatusMenu({
   playerId,

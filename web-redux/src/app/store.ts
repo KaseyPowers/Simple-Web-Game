@@ -5,13 +5,11 @@ import playerProfilesReducer from '../features/players/player_profiles_slice';
 
 import { gameStateName, BaseGameState } from "../game_state/type";
 
-import emptyGameObj from "../game_state/games/empty";
+import { id as emptyGameId } from "../game_state/games/empty";
 
-import type { sliceIds } from "../game_state/games/all_states";
+import type { gameObjIds } from "../game_state/games/all_states";
 import allGameStates from "../game_state/games/all_states";
-
-
-const emptyGameId = emptyGameObj.id;
+import { resetGame } from "../game_state/games/utils";
 
 const staticReducers = {
   players: playerProfilesReducer
@@ -37,7 +35,7 @@ export const store = configureStore({
   reducer: reducerMap,
 });
 
-export function setGameStateReducer(gameStateId: sliceIds) {
+export function setGameStateReducer(gameStateId: gameObjIds) {
   /** Make sure this isn't the currently used state to avoid resetting */
   if (store.getState()[gameStateName].id === gameStateId) {
     console.warn("Game state already using this id");
@@ -48,9 +46,9 @@ export function setGameStateReducer(gameStateId: sliceIds) {
   reducerMap = { ...reducerMap, [gameStateName]: slice.reducer };
   /** TODO: figure out what happens with state while swapping between reducers of the game key */
   store.replaceReducer(combineReducers(reducerMap));
-  if (slice.actions.reset) {
-    store.dispatch(slice.actions.reset({}));
-  }
+
+  store.dispatch(resetGame(false));
+
   return store;
 }
 

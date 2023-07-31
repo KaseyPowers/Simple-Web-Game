@@ -1,19 +1,18 @@
 import React from "react";
 import { Stack, Divider } from "@mui/material";
 
-import allGameStates from "../games/all_states";
+import { selectGameStateObj } from "../games/all_states";
 
 import { GameStatuses } from "../type";
-import { selectGameID, selectGameStatus } from "../utils";
+import { selectGameStatus } from "../utils";
 import { useAppSelector } from "../../app/hooks";
 
 import GameStateHeader from "./game_header";
 import PrepView from "./prep_game_view";
 
 function FullGameStateView() {
-  const gameId = useAppSelector(selectGameID);
   const status = useAppSelector(selectGameStatus);
-  const { View, Component } = (gameId && allGameStates[gameId]) || {};
+  const { View, Component } = useAppSelector(selectGameStateObj) || {};
 
   /** Component defines the full view */
   if (Component) {
@@ -23,14 +22,29 @@ function FullGameStateView() {
     throw new Error("No View or Component defined, shouldn't see this");
   }
 
+  let body = null;
+  switch (status) {
+    case GameStatuses.playing:
+      /** TODO: Round 0 start type view */
+      body = <View.Playing />;
+      break;
+    case GameStatuses.waiting:
+      body = View.Prep ? <View.Prep /> : <PrepView />;
+      break;
+    case GameStatuses.finished:
+      body = View.Finished ? <View.Finished /> : <div>Finished Default?</div>;
+      break;
+  }
+
   return (
     <Stack
       alignItems="stretch"
       divider={<Divider flexItem />}
       sx={{ height: "100%" }}
+      spacing={2}
     >
       <GameStateHeader />
-      {status === GameStatuses.waiting ? <PrepView /> : <View />}
+      {body}
     </Stack>
   );
 }

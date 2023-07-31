@@ -1,7 +1,10 @@
 import { createSlice, PayloadAction, nanoid, createSelector } from '@reduxjs/toolkit';
+
 import { AppThunk, RootState } from '../../app/store';
+
 import { GameStatuses } from '../../game_state/type';
 import { selectGameStatus } from "../../game_state/utils";
+import { resetGameAction, startGameAction } from '../../game_state/games/utils';
 
 
 import type { BaseUUIDItem, MakeInputType } from "../../utils";
@@ -59,17 +62,21 @@ export const playerProfilesSlice = createSlice({
       })
     }
   },
+  extraReducers(builder) {
+    builder.addCase(startGameAction, (state, action) => {
+      action.payload.forEach((id) => {
+        state.byId[id].status = PlayerStatuses.playing
+      });
+    })
+      .addCase(resetGameAction, (state, action) => {
+        action.payload.resetPlayers.forEach((id) => {
+          state.byId[id].status = PlayerStatuses.waiting
+        });
+      });
+  },
 });
-export const { addPlayer, updateStatuses } = playerProfilesSlice.actions;
 
-/**
- * This function is a selector used to convert the player profiles state back into an array, using the order in the allIds array.
- */
-const selectPlayerProfilesState = (state: RootState) => state.players;
-const selectPlayerProfilesById = createSelector(selectPlayerProfilesState, state => state.byId);
-const selectPlayerProfileIds = createSelector(selectPlayerProfilesState, state => state.allIds);
-export const selectPlayerProfiles = createSelector([selectPlayerProfilesById, selectPlayerProfileIds], (byId, allIds) => allIds.map(id => byId[id]));
-export const selectWaitingPlayers = createSelector([selectPlayerProfiles], (players) => players.filter(player => player.status === PlayerStatuses.waiting));
+export const { addPlayer, updateStatuses } = playerProfilesSlice.actions;
 
 /** TODO: a selector with game state to check for exceptions when allowing/blocking users switching to playing */
 export const setPlayerStatus = (players: PlayerProfile["id"] | PlayerProfile["id"][], status: PlayerStatusTypes): AppThunk =>

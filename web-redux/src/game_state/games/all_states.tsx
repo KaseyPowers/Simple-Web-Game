@@ -1,15 +1,36 @@
-import emptyGame from "./empty";
-import testGame from "./test";
+import { createSelector } from "@reduxjs/toolkit";
+import { selectGameState } from "../utils";
 
-import { ObjectKeys } from "../../utils";
-import { BaseGameObj } from "./type";
+import emptyGame, { id as emptyId } from "./empty";
+import testGame, { id as testId } from "./test";
 
-const allGameStates: {
-  [key: string]: BaseGameObj;
-} = {
-  [emptyGame.id]: emptyGame,
-  [testGame.id]: testGame,
+import { ObjectKeys, UUID } from "../../utils";
+
+const allGameStates = {
+  [emptyId]: emptyGame,
+  [testId]: testGame,
 } as const;
-export type sliceIds = ObjectKeys<typeof allGameStates>;
+
+export type gameObjIds = ObjectKeys<typeof allGameStates>;
+
+export const allGameIds: gameObjIds[] = Object.keys(
+  allGameStates,
+) as gameObjIds[];
+
+function idIsGameID(id: UUID): id is gameObjIds {
+  return (
+    !!id &&
+    allGameIds.includes(id as gameObjIds) &&
+    typeof allGameStates[id as gameObjIds] !== "undefined"
+  );
+}
+
+export const selectGameStateObj = createSelector(selectGameState, (state) => {
+  const { id } = state;
+  if (idIsGameID(id)) {
+    return allGameStates[id];
+  }
+  return null;
+});
 
 export default allGameStates;
