@@ -2,6 +2,8 @@ import type { Reducer } from "redux";
 
 import { ObjectValues, UUID } from '../utils';
 
+import type { PlayerProfile } from "../features/players/player_profiles_slice";
+
 export const gameStateName = "gameState" as const;
 /** NOTE: waiting/ready statuses could work, but I think I'll leave out ready, have ready be a selector/computed value of waiting + conditions met */
 export const GameStatuses = {
@@ -12,11 +14,11 @@ export const GameStatuses = {
 type GameStatusTypes = ObjectValues<typeof GameStatuses>;
 
 /** the base data, what will be shared by all games */
-export interface BaseGameState {
+export interface BaseGameState<PlayerState extends any = any> {
     id: UUID,
     name: string, /** Name of the game */
     status: GameStatusTypes, /** the status of the game  */
-    players: UUID[], /** Store the array (in order for turn stuff, TBD how to handle prep phase for order to change ) */
+    players: UUID[], /** Store the array (in order for turn stuff, TODO how to handle prep phase for order to change ) */
     /** TODO: How to define this for best re-usability */
     meta: {
         /** Player Min/Max logic */
@@ -28,8 +30,15 @@ export interface BaseGameState {
     },
     /** A common base for the state, but flexible for various types */
     state: {
-        [key: string]: any
+        /** Assume playerState object to define information for the current game state for that player. Optional since it can't be defined until players are added */
+        playerStates: Record<UUID, PlayerState>,
+        [key: string]: any,        
     }
 }
+
+/** TODO: better? */
+export type PlayerGameStateProfile<T extends BaseGameState> = PlayerProfile & {
+    state: T["state"]["playerStates"][UUID]
+};
 
 export type GameStateReducer = Reducer<BaseGameState>

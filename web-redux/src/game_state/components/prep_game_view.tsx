@@ -13,6 +13,7 @@ import {
   Divider,
   CardContent,
   IconButton,
+  Button
 } from "@mui/material";
 
 import CheckIcon from "@mui/icons-material/Check";
@@ -32,8 +33,10 @@ function PrepView() {
   const waitingPlayersCount = waitingPlayers.length;
 
   let iconColor: React.ComponentProps<typeof IconButton>["color"] = "info";
+  let iconText = "Waiting for Players";
   if (waitingPlayersCount >= minPlayers) {
     iconColor = "success";
+    iconText = "Ready to start";
   }
   if (waitingPlayersCount >= maxPlayers) {
     iconColor = "warning";
@@ -44,13 +47,14 @@ function PrepView() {
     .map((player) => player.id);
 
   const startButton = (
-    <IconButton
+    <Button
+      variant="outlined"
       color={iconColor}
       disabled={waitingPlayersCount < minPlayers}
       onClick={() => dispatch(startGameAction(readyPlayerIds))}
     >
-      <CircularProgress color={iconColor} />
-    </IconButton>
+      {iconText}<CircularProgress color={iconColor} sx={{marginLeft: 2}} />
+    </Button>
   );
 
   // const listItems = useMemo(() => {

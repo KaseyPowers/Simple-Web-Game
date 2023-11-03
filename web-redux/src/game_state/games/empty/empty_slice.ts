@@ -10,7 +10,9 @@ const emptyInitialState: BaseGameState = {
     name: "~empty~",
     status: GameStatuses.waiting,
     players: [],
-    state: {},
+    state: {
+        playerStates: {}
+    },
     meta: {
         minPlayers: 0,
         /** Try to use -1 to make it always above max */
