@@ -1,11 +1,11 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 import { startGameAction, resetGameAction } from "../utils";
-import { GameStatuses, BaseGameState, gameStateName } from "../../type";
+import { GameStatuses, BaseGameDefinition, gameStateName } from "../../type";
 
 export const id = "null" as const;
 
-const emptyInitialState: BaseGameState = {
+const emptyInitialState: BaseGameDefinition = {
     id,
     name: "~empty~",
     status: GameStatuses.waiting,

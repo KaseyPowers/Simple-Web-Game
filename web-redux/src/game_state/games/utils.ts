@@ -2,11 +2,11 @@ import { createAction, createSelector } from "@reduxjs/toolkit";
 
 import { AppThunk } from "../../app/store";
 import type { UUID } from "../../utils";
-import type { BaseGameState } from "../type";
+import type { BaseGameDefinition } from "../type";
 import { gameStateName, GameStatuses } from "../type";
 import type { GameObj, GameObjInput } from "./type";
 
-export function createGameObj<T extends BaseGameState>(inputObj: GameObjInput<T>): Readonly<GameObj<T>> {
+export function createGameObj<T extends BaseGameDefinition>(inputObj: GameObjInput<T>): Readonly<GameObj<T>> {
 
     const { slice, Component, View, ...rest } = inputObj;
 

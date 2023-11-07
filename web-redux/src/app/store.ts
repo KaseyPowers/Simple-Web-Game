@@ -3,7 +3,7 @@ import { configureStore, ThunkAction, Action, combineReducers } from '@reduxjs/t
 
 import playerProfilesReducer from '../features/players/player_profiles_slice';
 
-import { gameStateName, BaseGameState } from "../game_state/type";
+import { gameStateName, BaseGameDefinition } from "../game_state/type";
 
 import { id as emptyGameId } from "../game_state/games/empty";
 
@@ -15,7 +15,7 @@ const staticReducers = {
   players: playerProfilesReducer
 };
 
-type GameStateReducer = Reducer<BaseGameState>
+type GameStateReducer = Reducer<BaseGameDefinition>
 
 /** TODO: gameState reducer stuff */
 type ReducerMap = typeof staticReducers & {

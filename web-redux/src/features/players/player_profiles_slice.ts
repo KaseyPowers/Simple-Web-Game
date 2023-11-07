@@ -29,8 +29,9 @@ export type InputPlayerProfile = MakeInputType<PlayerProfile, "id", "status">;
 export function createPlayerProfile(input: InputPlayerProfile): PlayerProfile {
   return {
     status: defaultPlayerStatus, /** Providing a default player status but let it be overridden */
-    ...input,
     id: nanoid(),
+    // adding input after id so a pre-defined id can be saved
+    ...input,
   };
 }
 

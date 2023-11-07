@@ -1,8 +1,6 @@
 import type { Reducer } from "redux";
 
-import { ObjectValues, UUID } from '../utils';
-
-import type { PlayerProfile } from "../features/players/player_profiles_slice";
+import { ObjectValues, UUID, BaseUUIDItem } from '../utils';
 
 export const gameStateName = "gameState" as const;
 /** NOTE: waiting/ready statuses could work, but I think I'll leave out ready, have ready be a selector/computed value of waiting + conditions met */
@@ -11,10 +9,25 @@ export const GameStatuses = {
     playing: "PLAYING",
     finished: "FINISHED"
 } as const;
+
 type GameStatusTypes = ObjectValues<typeof GameStatuses>;
 
-/** the base data, what will be shared by all games */
-export interface BaseGameState<PlayerState extends any = any> {
+/** In case we add to this */
+export type BaseCardType = BaseUUIDItem;
+
+export type CardDeck<CardType extends BaseUUIDItem> = CardType[];
+
+export type DeckType<CardType extends BaseUUIDItem> = CardDeck<CardType> | { [key: string]: CardDeck<CardType> };
+
+export interface BaseGameState<PlayerState extends any, Card extends BaseCardType, Deck extends DeckType<Card> = DeckType<Card>> {
+    playerStates: Record<UUID, PlayerState>,
+    deck: Deck,
+    discardPile: Deck,
+    /** Catch all */
+    [key: string]: any
+}
+
+export interface BaseGameDefinition<PlayerState extends any, Card extends BaseCardType, Deck extends DeckType<Card>, GameState extends BaseGameState<PlayerState, Card, Deck> = BaseGameState<PlayerState, Card, Deck>> {
     id: UUID,
     name: string, /** Name of the game */
     status: GameStatusTypes, /** the status of the game  */
@@ -25,20 +38,13 @@ export interface BaseGameState<PlayerState extends any = any> {
         minPlayers: number, /** Minimum players needed to play */
         maxPlayers: number, /** Maximum players the game can support */
 
+        allCards: GameState["deck"]
+
         /** Keep this for flexibility */
         [key: string]: any
     },
     /** A common base for the state, but flexible for various types */
-    state: {
-        /** Assume playerState object to define information for the current game state for that player. Optional since it can't be defined until players are added */
-        playerStates: Record<UUID, PlayerState>,
-        [key: string]: any,        
-    }
+    state: GameState
 }
 
-/** TODO: better? */
-export type PlayerGameStateProfile<T extends BaseGameState> = PlayerProfile & {
-    state: T["state"]["playerStates"][UUID]
-};
-
-export type GameStateReducer = Reducer<BaseGameState>
+export type GameDefinitionReducer<PlayerState extends any, Card extends BaseCardType, Deck extends DeckType<Card>, GameState extends BaseGameState<PlayerState, Card, Deck>, GameDef extends BaseGameDefinition<PlayerState, Card, Deck, GameState> = BaseGameDefinition<PlayerState, Card, Deck, GameState>> = Reducer<GameDef>

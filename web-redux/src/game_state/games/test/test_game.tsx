@@ -7,9 +7,9 @@ import { useAppSelector } from "../../../app/hooks";
 import { selectGamePlayers } from "../../utils";
 import { PlayerGameStateProfile } from "../../type";
 
-import {TestGameState} from "./test_slice";
+import {TestGameState, TestGamePlayerState} from "./test_slice";
 
-const PlayerListItem = ({player, isLast = true}: {player: PlayerGameStateProfile<TestGameState>, isLast: boolean}) => {
+const PlayerListItem = ({player, isLast = true}: {player: PlayerGameStateProfile<TestGamePlayerState>, isLast: boolean}) => {
   const {id, name, state} = player;
 
   return (
