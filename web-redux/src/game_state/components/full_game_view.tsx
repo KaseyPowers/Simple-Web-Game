@@ -1,18 +1,18 @@
 import React from "react";
 import { Stack, Divider } from "@mui/material";
 
-import { selectGameStateObj } from "../games/all_states";
+import { GameStatuses } from "../../game_definition";
 
-import { GameStatuses } from "../type";
-import { selectGameStatus } from "../utils";
 import { useAppSelector } from "../../app/hooks";
+
+import {selectedGameComponentSelector, selectedGameStatusSelector} from "../selectors";
 
 import GameStateHeader from "./game_header";
 import PrepView from "./prep_game_view";
 
 function FullGameStateView() {
-  const status = useAppSelector(selectGameStatus);
-  const { View, Component } = useAppSelector(selectGameStateObj) || {};
+  const status = useAppSelector(selectedGameStatusSelector);
+  const { View, Component } = useAppSelector(selectedGameComponentSelector) || {};
 
   /** Component defines the full view */
   if (Component) {

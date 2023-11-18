@@ -4,24 +4,27 @@ import Grid from "@mui/material/Unstable_Grid2";
 import { Paper, List, ListItem, ListItemText } from "@mui/material";
 
 import { useAppSelector } from "../../../app/hooks";
-import { selectGamePlayers } from "../../utils";
-import { PlayerGameStateProfile } from "../../type";
+import {PlayerGameStateProfile, PromptPlayerState} from "../../../game_definition";
 
-import {TestGameState, TestGamePlayerState} from "./test_slice";
+import {gamePlayersSelector} from "./selectors";
 
-const PlayerListItem = ({player, isLast = true}: {player: PlayerGameStateProfile<TestGamePlayerState>, isLast: boolean}) => {
+
+type PromptPlayerStateProfile = PlayerGameStateProfile<PromptPlayerState>;
+
+const PlayerListItem = ({player, isLast = true}: {player: PromptPlayerStateProfile, isLast: boolean}) => {
   const {id, name, state} = player;
+  const {wonHands} = state;
 
   return (
     <ListItem key={id} divider={!isLast}>
       <ListItemText primary={name} />
-      <ListItemText sx={{textAlign: "right"}} secondary={`score ${state?.score ?? 0}`}/>
+      <ListItemText sx={{textAlign: "right"}} secondary={`score ${wonHands.length}`}/>
     </ListItem>
   )
 }
 
 const AllPlayersList = () => {
-  const gamePlayers = useAppSelector(selectGamePlayers);
+  const gamePlayers = useAppSelector(gamePlayersSelector) as PromptPlayerStateProfile[];
 
   return (<List dense>
         {gamePlayers.map((player, index) => (
@@ -35,7 +38,7 @@ const TestGameView = () => {
    * Default player profiles to display
    * In fancier games, would mix with game state for things like score
    */
-  const gamePlayers = useAppSelector(selectGamePlayers);
+  const gamePlayers = useAppSelector(gamePlayersSelector);
 
   const defaultColumnCount = useMemo(() => Math.min(4, gamePlayers.length + 1), [gamePlayers.length]);
 

@@ -1,22 +1,25 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 import { startGameAction, resetGameAction } from "../utils";
-import { GameStatuses, BaseGameDefinition, gameStateName } from "../../type";
+import { GameStatuses, BaseGameStateDefinition, gameStateName } from "../../../game_definition";
 
 export const id = "null" as const;
 
-const emptyInitialState: BaseGameDefinition = {
+const emptyInitialState: BaseGameStateDefinition = {
     id,
     name: "~empty~",
     status: GameStatuses.waiting,
     players: [],
     state: {
-        playerStates: {}
+        playerStates: {},
+        deck: [],
+        discardPile: []
     },
     meta: {
         minPlayers: 0,
         /** Try to use -1 to make it always above max */
-        maxPlayers: -1
+        maxPlayers: -1,
+        allCards: [],
     }
 }
 

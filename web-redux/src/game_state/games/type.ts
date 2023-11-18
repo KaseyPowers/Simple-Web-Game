@@ -2,8 +2,7 @@ import type React from "react";
 import type { Slice, SliceCaseReducers } from '@reduxjs/toolkit';
 import { RequireOnlyOne } from "../../utils";
 
-import type { BaseGameDefinition } from "../type";
-import { gameStateName } from "../type";
+import {gameStateName, BaseGameStateDefinition} from "../../game_definition";
 
 type CompViewType = React.JSXElementConstructor<{}>;
 
@@ -26,14 +25,14 @@ type BaseInputComponentPieces = {
 type ComponentPieces = RequireOnlyOne<BaseComponentPieces, "Component" | "View">
 type InputComponentPieces = RequireOnlyOne<BaseInputComponentPieces, "Component" | "View">
 
-type GameObjSlice<T extends BaseGameDefinition> = {
+type GameObjSlice<T extends BaseGameStateDefinition> = {
     slice: Slice<T, SliceCaseReducers<T>, typeof gameStateName>,
 };
 
-export type GameObj<T extends BaseGameDefinition> = Pick<T, "id" | "name"> & GameObjSlice<T> & ComponentPieces;
+export type GameObj<T extends BaseGameStateDefinition> = Pick<T, "id" | "name"> & GameObjSlice<T> & ComponentPieces;
 
-export type GameObjInput<T extends BaseGameDefinition> = Partial<Pick<T, "id" | "name">> & GameObjSlice<T> & InputComponentPieces;
+export type GameObjInput<T extends BaseGameStateDefinition> = Partial<Pick<T, "id" | "name">> & GameObjSlice<T> & InputComponentPieces;
 
-export type BaseGameObj = GameObj<BaseGameDefinition>;
+export type BaseGameObj = GameObj<BaseGameStateDefinition>;
 
-export type BaseGameObjInput = GameObjInput<BaseGameDefinition>;
+export type BaseGameObjInput = GameObjInput<BaseGameStateDefinition>;

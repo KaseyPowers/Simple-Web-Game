@@ -1,57 +1,20 @@
-import type { Reducer } from "redux";
-import { configureStore, ThunkAction, Action, combineReducers } from '@reduxjs/toolkit';
+import { configureStore, ThunkAction, Action } from '@reduxjs/toolkit';
 
 import playerProfilesReducer from '../features/players/player_profiles_slice';
 
-import { gameStateName, BaseGameDefinition } from "../game_state/type";
+import gamesReducer from "../game_state/games_slice"
 
-import { id as emptyGameId } from "../game_state/games/empty";
-
-import type { gameObjIds } from "../game_state/games/all_states";
-import allGameStates from "../game_state/games/all_states";
-import { resetGame } from "../game_state/games/utils";
-
-const staticReducers = {
-  players: playerProfilesReducer
-};
-
-type GameStateReducer = Reducer<BaseGameDefinition>
-
-/** TODO: gameState reducer stuff */
-type ReducerMap = typeof staticReducers & {
-  [gameStateName]: GameStateReducer
-}
-
-let reducerMap: ReducerMap = {
-  ...staticReducers,
-  [gameStateName]: allGameStates[emptyGameId].slice.reducer
-};
 
 /** 
  * Store for the base store of logic, working with the true state of the game.
  * NOTE: Should move to BE logic later, but learning here for now
  */
 export const store = configureStore({
-  reducer: reducerMap,
+  reducer: {    
+  players: playerProfilesReducer,
+    games: gamesReducer
+  },
 });
-
-export function setGameStateReducer(gameStateId: gameObjIds) {
-  /** Make sure this isn't the currently used state to avoid resetting */
-  if (store.getState()[gameStateName].id === gameStateId) {
-    console.warn("Game state already using this id");
-    return;
-  }
-  const slice = allGameStates[gameStateId].slice;
-
-  reducerMap = { ...reducerMap, [gameStateName]: slice.reducer };
-  /** TODO: figure out what happens with state while swapping between reducers of the game key */
-  store.replaceReducer(combineReducers(reducerMap));
-
-  store.dispatch(resetGame(false));
-
-  return store;
-}
-
 
 export type AppDispatch = typeof store.dispatch;
 export type RootState = ReturnType<typeof store.getState>;

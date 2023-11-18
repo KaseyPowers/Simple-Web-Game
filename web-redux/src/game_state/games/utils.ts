@@ -1,12 +1,10 @@
-import { createAction, createSelector } from "@reduxjs/toolkit";
+import { createAction } from "@reduxjs/toolkit";
 
-import { AppThunk } from "../../app/store";
-import type { UUID } from "../../utils";
-import type { BaseGameDefinition } from "../type";
-import { gameStateName, GameStatuses } from "../type";
+import { UUID } from "../../utils";
+import { BaseGameStateDefinition } from "../../game_definition";
 import type { GameObj, GameObjInput } from "./type";
 
-export function createGameObj<T extends BaseGameDefinition>(inputObj: GameObjInput<T>): Readonly<GameObj<T>> {
+export function createGameObj<T extends BaseGameStateDefinition>(inputObj: GameObjInput<T>): Readonly<GameObj<T>> {
 
     const { slice, Component, View, ...rest } = inputObj;
 
@@ -41,20 +39,7 @@ export function createGameObj<T extends BaseGameDefinition>(inputObj: GameObjInp
     throw new Error("Must define a Component or View");
 }
 
-export const startGameAction = createAction<UUID[]>([gameStateName, "startGame"].join("/"));
+const gamesRootName = "games";
+export const startGameAction = createAction<UUID[]>([gamesRootName, "startGame"].join("/"));
 
-export const resetGameAction = createAction<{ keepPlaying: boolean, resetPlayers: UUID[] }>([gameStateName, "resetGame"].join("/"));
-
-export const resetGame = (keepPlaying: boolean): AppThunk => (dispatch, getState) => {
-
-    const currentGameState = getState()[gameStateName];
-
-    /** Fot not-waiting to catch playing+finished */
-    const currentlyPlaying = currentGameState.status !== GameStatuses.waiting;
-    const useKeepPlaying = keepPlaying && currentlyPlaying;
-
-    dispatch(resetGameAction({
-        keepPlaying: useKeepPlaying,
-        resetPlayers: useKeepPlaying ? [] : currentGameState.players
-    }));
-}
+export const resetGameAction = createAction<{ keepPlaying: boolean }>([gamesRootName, "resetGame"].join("/"));

@@ -21,14 +21,15 @@ import BlockIcon from "@mui/icons-material/Block";
 
 import { selectWaitingPlayers } from "../../features/players/player_profiles_selectors";
 
-import { selectGameMeta } from "../utils";
 import { startGameAction } from "../games/utils";
 import { useAppSelector, useAppDispatch } from "../../app/hooks";
+
+import {selectedGameMetaSelector} from "../selectors";
 
 function PrepView() {
   const waitingPlayers = useAppSelector(selectWaitingPlayers);
   const dispatch = useAppDispatch();
-  const { minPlayers, maxPlayers } = useAppSelector(selectGameMeta);
+  const { minPlayers, maxPlayers } = useAppSelector(selectedGameMetaSelector);
 
   const waitingPlayersCount = waitingPlayers.length;
 

@@ -1,9 +1,9 @@
-import { createSlice, PayloadAction, nanoid, createSelector } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, nanoid } from '@reduxjs/toolkit';
 
-import { AppThunk, RootState } from '../../app/store';
+import { AppThunk } from '../../app/store';
 
-import { GameStatuses } from '../../game_state/type';
-import { selectGameStatus } from "../../game_state/utils";
+import { GameStatuses } from '../../game_definition';
+import {selectedGameStatusSelector} from "../../game_state/selectors";
 import { resetGameAction, startGameAction } from '../../game_state/games/utils';
 
 
@@ -70,9 +70,13 @@ export const playerProfilesSlice = createSlice({
       });
     })
       .addCase(resetGameAction, (state, action) => {
-        action.payload.resetPlayers.forEach((id) => {
-          state.byId[id].status = PlayerStatuses.waiting
-        });
+        if (!action.payload.keepPlaying) {
+          state.allIds.forEach(id => {
+            if (state.byId[id].status === PlayerStatuses.playing) {
+              state.byId[id].status = PlayerStatuses.waiting;
+            }
+          })
+        }
       });
   },
 });
@@ -83,7 +87,7 @@ export const { addPlayer, updateStatuses } = playerProfilesSlice.actions;
 export const setPlayerStatus = (players: PlayerProfile["id"] | PlayerProfile["id"][], status: PlayerStatusTypes): AppThunk =>
   (dispatch, getState) => {
     const playersState = getState().players;
-    const isPlaying = selectGameStatus(getState()) === GameStatuses.playing
+    const isPlaying = selectedGameStatusSelector(getState()) === GameStatuses.playing
 
     let toSet: PlayerProfile["id"][] = [];
     // first get ids into an array

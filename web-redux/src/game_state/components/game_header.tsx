@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from "react";
+import React, { useMemo } from "react";
 import {
   Stack,
   Button,
@@ -12,29 +12,32 @@ import {
 } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 
-import allGameStates, { allGameIds } from "../games/all_states";
-import { id as emptyGameId } from "../games/empty";
+import {allGames} from "../games/all_games";
 
-import { selectGameName, selectGameID } from "../utils";
-import { resetGame } from "../games/utils";
 import { useAppSelector, useAppDispatch } from "../../app/hooks";
-import { setGameStateReducer } from "../../app/store";
 
-const availableGameStates = allGameIds.filter((val) => val !== emptyGameId);
+import { gameSelectorSlice } from "../games_slice";
+
+import {selectedGameIdSelector, selectedGameNameSelector, gameIdOptionsSelector} from "../selectors";
+
+import {resetGameAction} from "../games/utils";
+
+const {setSelectedGame} = gameSelectorSlice.actions;
 
 function GameStateHeader() {
   const dispatch = useAppDispatch();
 
-  const gameId = useAppSelector(selectGameID);
-  const gameName = useAppSelector(selectGameName);
+  const gameId = useAppSelector(selectedGameIdSelector);
+  const gameName = useAppSelector(selectedGameNameSelector);
+  const gameOptionIds = useAppSelector(gameIdOptionsSelector);
 
   const gameOptions = useMemo(() => {
-    return availableGameStates.map((id) => ({
+    return gameOptionIds.map((id) => ({
       id,
-      name: allGameStates[id].name,
+      name: allGames[id].name,
       selected: id === gameId,
     }));
-  }, [gameId]);
+  }, [gameOptionIds, gameId]);
 
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -52,8 +55,8 @@ function GameStateHeader() {
       <h1>Name: {gameName}</h1>
 
       <ButtonGroup variant="contained" aria-label="split button">
-        <Button onClick={() => dispatch(resetGame(false))}>Quit</Button>
-        <Button onClick={() => dispatch(resetGame(true))}>Restart</Button>
+        <Button onClick={() => dispatch(resetGameAction({keepPlaying: false}))}>Quit</Button>
+        <Button onClick={() => dispatch(resetGameAction({keepPlaying: true}))}>Restart</Button>
         <Button
           size="small"
           aria-controls={open ? "split-button-menu" : undefined}
@@ -92,7 +95,7 @@ function GameStateHeader() {
                       disabled={selected}
                       selected={selected}
                       onClick={() => {
-                        setGameStateReducer(id);
+                        dispatch(setSelectedGame(id));
                       }}
                     >
                       {name}
