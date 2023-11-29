@@ -31,7 +31,7 @@ export interface BaseGameStateDefinition {
         /** Basic attributes around hand sizes, optional in case more complex rules apply */
 
         // this is used by a basic utility to make sure each players hand has this many cards
-        min_hand_size?: number,
+        minHandSize?: number,
 
         /** Keep this for flexibility */
         [key: string]: any

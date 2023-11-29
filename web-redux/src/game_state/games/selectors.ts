@@ -22,8 +22,8 @@ export const getGameSelectors = (id: GameObjIds) => {
 
 
     return {
-        gameDefState: gameDefStateSelector,
-        gameState: gameStateSelector,
+        gameDefStateSelector,
+        gameStateSelector,
         gamePlayersSelector
     };
 }

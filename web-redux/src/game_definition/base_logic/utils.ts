@@ -108,28 +108,27 @@ export function getEmptyGameState<GameDef extends BaseGameStateDefinition>(gameD
 type drawCardFn<GameDef extends BaseGameStateDefinition> = (gameDef: GameDef) => BaseCardType
 
 export function fillHands<GameDef extends BaseGameStateDefinition>(gameDef: GameDef, drawCard: drawCardFn<GameDef>) {
-    const {players, state, meta} = gameDef;
-    const {min_hand_size} = meta;
+    const {players, meta} = gameDef;
+    const {minHandSize} = meta;
 
-    const {playerStates} = state;
-    if (!playerStates) {
+    if (!gameDef.state.playerStates) {
         throw new Error("Should only be calling this function for games using playerState")
     }
 
-    if (typeof min_hand_size !== "number") {
-        throw new Error("should only be calling this function with 'min_hand_size' defined");
+    if (typeof minHandSize !== "number") {
+        throw new Error("should only be calling this function with 'minHandSize' defined");
     }
 
     players.forEach(playerId => {
-        const playerState = playerStates[playerId];
-        if (!playerState) {
+        if (!gameDef.state.playerStates[playerId]) {
             throw new Error("Missing player state object for this playerID");
         }
         /** Assuming an array hand */
-        while(playerState.hand.length < min_hand_size) {
+        while(gameDef.state.playerStates[playerId].hand.length < minHandSize) {
             const newCard = drawCard(gameDef);
-            playerState.hand.push(newCard);
+            gameDef.state.playerStates[playerId].hand.push(newCard);
         }        
     });
+
     return gameDef;
 }

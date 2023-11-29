@@ -9,11 +9,6 @@ export const EmptyPromptCard: PromptCard = {
     value: null,
 };
 
-const emptyPromptPlayerState: PromptPlayerState = {
-    wonHands: [],
-    hand: []
-};
-
 // TODO: Determine if this const is needed or just used by the initial state
 const emptyRound: PromptGameState["round"] = {
     /** Judge number invalid to indicate it's a filler not to use */
@@ -35,7 +30,10 @@ export function getInitialPromptGameState<GameDef extends PromptGameStateDefinit
     const {players} = gameDefInput;
 
     return {
-        playerStates: initPlayerStates<PromptPlayerState>(players, emptyPromptPlayerState),
+        playerStates: initPlayerStates<PromptPlayerState>(players,  () => ({
+            wonHands: [],
+            hand: []
+        })),
         ...initStateDecks(gameDefInput),
         /** Default judge to index 0 */
         round: emptyRound
@@ -58,7 +56,9 @@ function drawCard<GameDef extends PromptGameStateDefinition>(gameDef: GameDef, r
         gameDef.state.deck[CardTypeKeys.ANSWER] = shuffle(gameDef.state.discardPile[CardTypeKeys.ANSWER]);
         gameDef.state.discardPile[CardTypeKeys.ANSWER] = [];
     }
-    const output = gameDef.state.deck[CardTypeKeys.ANSWER].shift();
+    const [output, ...rest] = gameDef.state.deck[CardTypeKeys.ANSWER];
+
+    gameDef.state.deck[CardTypeKeys.ANSWER] = rest;
 
     if (!output) {
         throw new Error("Checked for reshuffling but shift() still returned unedfined");
@@ -102,4 +102,5 @@ export function createNextPromptRound<GameDef extends PromptGameStateDefinition>
         prompt: drawPromptCard(gameDef),
         playersCards: {}
     };
+    return gameDef;
 }
