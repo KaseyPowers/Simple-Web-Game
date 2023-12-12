@@ -1,26 +1,25 @@
-import { createSlice, PayloadAction, nanoid } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, nanoid } from "@reduxjs/toolkit";
 
-import { AppThunk } from '../../app/store';
+import { AppThunk } from "../../app/store";
 
-import { GameStatuses } from '../../game_definition';
-import {selectedGameStatusSelector} from "../../game_state/selectors";
-import { resetGameAction, startGameAction } from '../../game_state/games/utils';
-
+import { GameStatuses } from "../../game_definition";
+import { selectedGameStatusSelector } from "../../game_state/selectors";
+import { resetGameAction, startGameAction } from "../../game_state/games/utils";
 
 import type { BaseUUIDItem, MakeInputType } from "../../utils";
-import { ObjectValues, NormalizedState, createNormalized } from '../../utils';
+import { ObjectValues, NormalizedState, createNormalized } from "../../utils";
 
 export const PlayerStatuses = {
   watching: "WATCHING",
   waiting: "WAITING",
-  playing: "PLAYING"
+  playing: "PLAYING",
 } as const;
 export type PlayerStatusTypes = ObjectValues<typeof PlayerStatuses>;
 export const defaultPlayerStatus = PlayerStatuses.waiting;
 
 export interface PlayerProfile extends BaseUUIDItem {
-  status: PlayerStatusTypes,
-  name: string
+  status: PlayerStatusTypes;
+  name: string;
 }
 
 export type InputPlayerProfile = MakeInputType<PlayerProfile, "id", "status">;
@@ -28,7 +27,8 @@ export type InputPlayerProfile = MakeInputType<PlayerProfile, "id", "status">;
 /** Function to generate a new player profile, existing Ids just forced to default to empty array for consistency */
 export function createPlayerProfile(input: InputPlayerProfile): PlayerProfile {
   return {
-    status: defaultPlayerStatus, /** Providing a default player status but let it be overridden */
+    status:
+      defaultPlayerStatus /** Providing a default player status but let it be overridden */,
     id: nanoid(),
     // adding input after id so a pre-defined id can be saved
     ...input,
@@ -40,15 +40,28 @@ export type PlayerProfileState = NormalizedState<PlayerProfile>;
 const tempInitPlayers: PlayerProfile[] = [];
 tempInitPlayers.push(createPlayerProfile({ name: "A-Name" }));
 tempInitPlayers.push(createPlayerProfile({ name: "B-Name" }));
-tempInitPlayers.push(createPlayerProfile({ name: "C-Watcher-Name", status: PlayerStatuses.watching, }));
+tempInitPlayers.push(createPlayerProfile({ name: "C-Name" }));
+tempInitPlayers.push(
+  createPlayerProfile({
+    name: "D-Watcher-Name",
+    status: PlayerStatuses.watching,
+  }),
+);
 
-export const initialState: PlayerProfileState = createNormalized(tempInitPlayers);
+export const initialState: PlayerProfileState =
+  createNormalized(tempInitPlayers);
 
 export const playerProfilesSlice = createSlice({
   name: "players",
   initialState,
   reducers: {
-    updateStatuses: (state, action: PayloadAction<{ ids: PlayerProfile["id"][], status: PlayerStatusTypes }>) => {
+    updateStatuses: (
+      state,
+      action: PayloadAction<{
+        ids: PlayerProfile["id"][];
+        status: PlayerStatusTypes;
+      }>,
+    ) => {
       action.payload.ids.forEach((id) => {
         state.byId[id].status = action.payload.status;
       });
@@ -59,23 +72,24 @@ export const playerProfilesSlice = createSlice({
         state.allIds.push(action.payload.id);
       },
       prepare: (input: InputPlayerProfile) => ({
-        payload: createPlayerProfile(input)
-      })
-    }
+        payload: createPlayerProfile(input),
+      }),
+    },
   },
   extraReducers(builder) {
-    builder.addCase(startGameAction, (state, action) => {
-      action.payload.forEach((id) => {
-        state.byId[id].status = PlayerStatuses.playing
-      });
-    })
+    builder
+      .addCase(startGameAction, (state, action) => {
+        action.payload.forEach((id) => {
+          state.byId[id].status = PlayerStatuses.playing;
+        });
+      })
       .addCase(resetGameAction, (state, action) => {
         if (!action.payload.keepPlaying) {
-          state.allIds.forEach(id => {
+          state.allIds.forEach((id) => {
             if (state.byId[id].status === PlayerStatuses.playing) {
               state.byId[id].status = PlayerStatuses.waiting;
             }
-          })
+          });
         }
       });
   },
@@ -84,25 +98,28 @@ export const playerProfilesSlice = createSlice({
 export const { addPlayer, updateStatuses } = playerProfilesSlice.actions;
 
 /** TODO: a selector with game state to check for exceptions when allowing/blocking users switching to playing */
-export const setPlayerStatus = (players: PlayerProfile["id"] | PlayerProfile["id"][], status: PlayerStatusTypes): AppThunk =>
+export const setPlayerStatus =
+  (
+    players: PlayerProfile["id"] | PlayerProfile["id"][],
+    status: PlayerStatusTypes,
+  ): AppThunk =>
   (dispatch, getState) => {
     const playersState = getState().players;
-    const isPlaying = selectedGameStatusSelector(getState()) === GameStatuses.playing
+    const isPlaying =
+      selectedGameStatusSelector(getState()) === GameStatuses.playing;
 
     let toSet: PlayerProfile["id"][] = [];
     // first get ids into an array
     toSet = toSet.concat(players);
     /** If any Ids invalid, throw error */
-    if (toSet.some(id => !playersState.allIds.includes(id))) {
+    if (toSet.some((id) => !playersState.allIds.includes(id))) {
       throw new Error("Invalid player id provided");
     }
     /** Using filter to keep any ids that have valid changes */
-    toSet.filter(id => {
+    toSet.filter((id) => {
       const currentStatus = playersState.byId[id].status;
       /** make sure the status would actually change */
       if (currentStatus !== status) {
-
-
         // start with isPlaying stoppers
         if (isPlaying) {
           // don't let them move from playing if game is going on
@@ -113,7 +130,11 @@ export const setPlayerStatus = (players: PlayerProfile["id"] | PlayerProfile["id
         }
 
         /** Swtiching between non-playing status is never blocked */
-        if ([currentStatus, status].every(checkVal => checkVal !== PlayerStatuses.playing)) {
+        if (
+          [currentStatus, status].every(
+            (checkVal) => checkVal !== PlayerStatuses.playing,
+          )
+        ) {
           return true;
         }
       }
@@ -122,14 +143,12 @@ export const setPlayerStatus = (players: PlayerProfile["id"] | PlayerProfile["id
     });
 
     if (toSet.length <= 0) {
-      console.warn("Attempted to update player statuses, but none were able to update");
+      console.warn(
+        "Attempted to update player statuses, but none were able to update",
+      );
     } else {
-      dispatch(updateStatuses({ ids: toSet, status }))
+      dispatch(updateStatuses({ ids: toSet, status }));
     }
-
-
-
-
-  }
+  };
 
 export default playerProfilesSlice.reducer;
