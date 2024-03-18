@@ -1,11 +1,14 @@
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import {
   getServerSession,
   type DefaultSession,
   type NextAuthOptions,
 } from "next-auth";
-import DiscordProvider, { DiscordProfile } from "next-auth/providers/discord";
+import { type Adapter } from "next-auth/adapters";
+import DiscordProvider from "next-auth/providers/discord";
 
 import { env } from "~/env";
+import { db } from "~/server/db";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
@@ -36,17 +39,17 @@ declare module "next-auth" {
 interface NicknamedDiscordProfile extends DiscordProfile {
   global_name?: string;
 }
-
 export const authOptions: NextAuthOptions = {
   callbacks: {
-    session: ({ session, token }) => ({
+    session: ({ session, user }) => ({
       ...session,
       user: {
         ...session.user,
-        id: token.sub,
+        id: user.id,
       },
     }),
   },
+  adapter: PrismaAdapter(db) as Adapter,
   providers: [
     DiscordProvider<NicknamedDiscordProfile>({
       clientId: env.DISCORD_CLIENT_ID,
