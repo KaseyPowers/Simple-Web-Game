@@ -8,6 +8,10 @@ function onConnection(socket: Socket) {
   socket.on("hello", (args) => {
     console.log(args);
   });
+
+  socket.on("message", (msg) => {
+    socket.emit("message", msg);
+  });
 }
 
 export default function SocketHandler(
@@ -22,6 +26,9 @@ export default function SocketHandler(
   // @ts-expect-error this server pattern from example and not sure how to dig into this deep of types to fix
   const io = new Server(res.socket.server, {
     path: "/api/socket",
+    cors: {
+      origin: "http://localhost:3000",
+    },
   });
   res.socket.server.io = io;
 

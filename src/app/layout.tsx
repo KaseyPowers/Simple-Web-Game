@@ -6,6 +6,8 @@ import { Inter } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
 
+import { SocketIOProvider } from "~/app/context/socket_context";
+
 import baseStyles from "~/styles/base_styles";
 
 import Navbar from "./navbar";
@@ -37,7 +39,9 @@ export default function RootLayout({
         )}
       >
         <TRPCReactProvider>
-          <Navbar>{children}</Navbar>
+          <Navbar>
+            <SocketIOProvider>{children}</SocketIOProvider>
+          </Navbar>
         </TRPCReactProvider>
       </body>
     </html>
