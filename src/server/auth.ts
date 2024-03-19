@@ -5,7 +5,9 @@ import {
   type NextAuthOptions,
 } from "next-auth";
 import { type Adapter } from "next-auth/adapters";
-import DiscordProvider from "next-auth/providers/discord";
+import DiscordProvider, {
+  type DiscordProfile,
+} from "next-auth/providers/discord";
 
 import { env } from "~/env";
 import { db } from "~/server/db";
@@ -64,7 +66,7 @@ export const authOptions: NextAuthOptions = {
         }
         return {
           id: profile.id,
-          name: profile.global_name || profile.username,
+          name: profile.global_name ?? profile.username,
           email: profile.email,
           image: profile.image_url,
         };
