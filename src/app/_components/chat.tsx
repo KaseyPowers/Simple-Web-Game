@@ -1,11 +1,9 @@
 "use client";
-import { useSocketContext } from "../context/socket_context";
+import { useSocketContext } from "~/context/socket";
 import React from "react";
 
-import type { Session } from "next-auth";
-
-export default function Chat({ session }: { session: Session }) {
-  const { chat, socket } = useSocketContext();
+export default function Chat() {
+  const { chat, sendMsg } = useSocketContext();
 
   const sendChat = (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -15,10 +13,7 @@ export default function Chat({ session }: { session: Session }) {
     };
     const msg = target.msg.value;
 
-    socket.emit("message", {
-      user: session.user?.name ?? "Missing User?",
-      msg,
-    });
+    sendMsg(msg);
   };
 
   return (
@@ -28,7 +23,7 @@ export default function Chat({ session }: { session: Session }) {
         {chat.length ? (
           chat.map((msg, index) => (
             <div key={`chat_${index}`}>
-              <span>{session.user?.name === msg.user ? "Me" : msg.user}</span>
+              <span>{msg.user}</span>
               <span className="mx-4">:</span>
               <span>{msg.msg}</span>
             </div>

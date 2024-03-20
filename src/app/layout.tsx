@@ -6,7 +6,7 @@ import { Inter } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
 
-import { SocketIOProvider } from "~/app/context/socket_context";
+import { SocketIOProvider } from "~/context/socket";
 
 import baseStyles from "~/styles/base_styles";
 

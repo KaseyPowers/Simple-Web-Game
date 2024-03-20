@@ -2,6 +2,8 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { type Socket, io } from "socket.io-client";
 
+import type { Session } from "next-auth";
+
 export const socket = io({
   path: "/api/socket",
   // autoconnect false to connect in provider logic
@@ -16,6 +18,7 @@ interface IChatMsg {
 interface ISocketContext {
   chat: IChatMsg[];
   socket: Socket;
+  sendMsg: (msg: string) => void;
 }
 
 const SocketIOContext = createContext<ISocketContext | null>(null);
@@ -30,7 +33,13 @@ export function useSocketContext(): ISocketContext {
   return socketContext;
 }
 
-export function SocketIOProvider({ children }: { children: React.ReactNode }) {
+export function SocketIOProvider({
+  children,
+  session,
+}: {
+  children: React.ReactNode;
+  session: Session;
+}) {
   // Temp chat logic for learning sockets
   const [chat, setChat] = useState<IChatMsg[]>([]);
 
@@ -40,6 +49,10 @@ export function SocketIOProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     socket.connect();
+
+    // socket.onAny((event, ...args) => {
+    //   console.log(event, args);
+    // });
 
     socket.on("connect", () => {
       console.log("Socket Connected: ", socket.id);
@@ -51,14 +64,26 @@ export function SocketIOProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       socket.disconnect();
+      socket.off("connect");
+      socket.off("message");
     };
   }, []);
+
+  const sendMsg = (msg: string) => {
+    const msgObj: IChatMsg = {
+      user: session.user?.name ?? "Missing User?",
+      msg,
+    };
+    socket.emit("message", msgObj);
+    setChat((current) => [...current, msgObj]);
+  };
 
   return (
     <SocketIOContext.Provider
       value={{
         socket,
         chat,
+        sendMsg,
       }}
     >
       {children}

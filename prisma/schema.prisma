@@ -54,6 +54,7 @@ model Session {
 }
 
 model User {
+    // base User from nextjs
     id            String    @id @default(cuid())
     name          String?
     email         String?   @unique
@@ -61,7 +62,11 @@ model User {
     image         String?
     accounts      Account[]
     sessions      Session[]
-    posts         Post[]
+
+    // custom values added
+
+    // leaving posts from template until I'm confident to start removing it
+    posts Post[]
 }
 
 model VerificationToken {
