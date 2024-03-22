@@ -5,12 +5,15 @@ import type { ServerType, ServerSocketType } from "~/types/socket";
 import GameRoom from "./room";
 
 export function roomHandlers(io: ServerType, socket: ServerSocketType) {
+  function joinRoom(room: GameRoom) {
+    void socket.join(room.roomId);
+    socket.emit("roomInfo", room.getData());
+  }
   // on create_room, start a room with this new userId
   socket.on("create_room", () => {
     const room = new GameRoom(socket.data.userId);
     // join this server.
-    void socket.join(room.roomId);
-    socket.emit("roomInfo", room.getData());
+    joinRoom(room);
   });
 
   socket.on("join_room", (roomId) => {
@@ -21,15 +24,11 @@ export function roomHandlers(io: ServerType, socket: ServerSocketType) {
     // join room class and also the socket room
     const playersChanged = room.onJoin(socket.data.userId);
     // always try joining the room in case a user has multiple tabs open
-    void socket.join(room.roomId);
-    /**
-     * TODO: give new/joining player the full room data needed not just update the players.
-     */
-    socket.emit("roomInfo", room.getData());
+    joinRoom(room);
 
     // only send update event if a change happend
     if (playersChanged) {
-      socket.to(room.roomId).emit("players_update", room.players);
+      socket.to(room.roomId).emit("players_update", room.roomId, room.players);
     }
   });
 
@@ -47,7 +46,9 @@ export function roomHandlers(io: ServerType, socket: ServerSocketType) {
       if (!GameRoom.allRoomsData[roomId]) {
         io.emit("room_closed", roomId);
       } else {
-        socket.to(room.roomId).emit("players_update", room.players);
+        socket
+          .to(room.roomId)
+          .emit("players_update", room.roomId, room.players);
       }
     }
   });

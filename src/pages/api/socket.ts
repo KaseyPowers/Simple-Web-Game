@@ -7,19 +7,7 @@ import type { NextApiResponseServerIO } from "~/types/next";
 
 import type { ServerType, ServerSocketType } from "~/types/socket";
 
-function onConnection(socket: ServerSocketType) {
-  // const session = await getServerAuthSession();
-  // console.log("Has session? : ", session);
-  console.log("on server connection", socket.data.userId);
-
-  // join room for userId to track if on multiple tabs
-  void socket.join(socket.data.userId);
-
-  socket.on("message", (msg) => {
-    console.log("emit msg from server:", msg);
-    socket.broadcast.emit("message", msg);
-  });
-}
+import { roomHandlers } from "~/game_logic/room_handlers";
 
 export default function SocketHandler(
   req: NextApiRequest,
@@ -47,6 +35,17 @@ export default function SocketHandler(
     next();
   });
   res.socket.server.io = io;
+
+  const onConnection = (socket: ServerSocketType) => {
+    // const session = await getServerAuthSession();
+    // console.log("Has session? : ", session);
+    console.log("on server connection", socket.data.userId);
+
+    // join room for userId to track if on multiple tabs
+    void socket.join(socket.data.userId);
+
+    roomHandlers(io, socket);
+  };
 
   io.on("connection", onConnection);
 

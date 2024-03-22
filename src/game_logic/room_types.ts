@@ -7,8 +7,8 @@ export interface ChatDataI {
 // all data to sync the client to server
 export interface GameRoomDataI {
   roomId: string;
-  chat: ChatDataI[];
   players: string[];
+  chat: ChatDataI[];
 }
 
 export interface RoomServerToClientEvents {

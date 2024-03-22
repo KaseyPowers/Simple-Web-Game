@@ -1,4 +1,4 @@
-import User from "~/app/_components/user";
+import User from "~/app/components/user";
 
 export default function Navbar({ children }: { children: React.ReactNode }) {
   return (

@@ -3,7 +3,9 @@ import { useSocketContext } from "~/context/socket";
 import React from "react";
 
 export default function Chat() {
-  const { chat, sendMsg } = useSocketContext();
+  const { socket, room, userId, setRoom } = useSocketContext();
+
+  const { roomId, chat } = room ?? {};
 
   const sendChat = (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -13,7 +15,17 @@ export default function Chat() {
     };
     const msg = target.msg.value;
 
-    sendMsg(msg);
+    const msgObj = {
+      roomId,
+      userId,
+      msg,
+    };
+
+    socket.emit("message", msgObj);
+    setRoom((current) => ({
+      ...current,
+      chat: [...current.chat, msgObj],
+    }));
   };
 
   return (
@@ -23,7 +35,7 @@ export default function Chat() {
         {chat.length ? (
           chat.map((msg, index) => (
             <div key={`chat_${index}`}>
-              <span>{msg.user}</span>
+              <span>{msg.userId}</span>
               <span className="mx-4">:</span>
               <span>{msg.msg}</span>
             </div>

@@ -4,6 +4,8 @@ import "~/styles/globals.css";
 
 import { Inter } from "next/font/google";
 
+import { getServerAuthSession } from "~/server/auth";
+
 import { TRPCReactProvider } from "~/trpc/react";
 
 import { SocketIOProvider } from "~/context/socket";
@@ -23,11 +25,12 @@ export const metadata = {
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getServerAuthSession();
   return (
     <html lang="en">
       <body
@@ -40,7 +43,7 @@ export default function RootLayout({
       >
         <TRPCReactProvider>
           <Navbar>
-            <SocketIOProvider>{children}</SocketIOProvider>
+            <SocketIOProvider session={session}>{children}</SocketIOProvider>
           </Navbar>
         </TRPCReactProvider>
       </body>
