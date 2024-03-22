@@ -1,0 +1,101 @@
+import cryptoRandomString from "crypto-random-string";
+
+import type { ChatDataI, GameRoomDataI } from "./room_types";
+/**
+ * NOTES:
+ * - Should I have the sockets use the roomId raw or do something like `room_${roomId}`
+ * - Should I be using callbacks to return errors or let the thrown errors do whatever they do?
+ */
+
+export default class GameRoom implements GameRoomDataI {
+  roomId: string;
+
+  // track all the games that are active
+  static allRoomsData: Record<string, GameRoom> = {};
+
+  chat: ChatDataI[] = [];
+
+  /**
+   * Track all the players that are in this room.
+   * Will have a system for checking for disconects from multiple tabs before dropping them from the list.
+   * Also will have the host/admin/manager/term-tbd just be whoever is at index-0
+   */
+  players: string[] = [];
+
+  getData(): GameRoomDataI {
+    return {
+      roomId: this.roomId,
+      chat: this.chat,
+      players: this.players,
+    };
+  }
+
+  // TODO: Game config + instance
+  // TODO: Metadata tracking ex. games played, player wins, etc.
+
+  // constructor called with the userId of whoever creates the room as admin
+  constructor(userId: string) {
+    this.players = [userId];
+
+    // setting roomId is last step before adding to the object
+    // NOTE: using library to make a shorter id that will be easier to type manually into a browser if that's how it's being shared.
+    this.roomId = cryptoRandomString({ length: 6, type: "distinguishable" });
+
+    // add this gameRoom instance to the object
+    if (GameRoom.allRoomsData[this.roomId]) {
+      throw new Error(
+        `Somehow created a room for an id that already exists! roomId: ${this.roomId}, !!GameRoom.allRoomsData[roomId]: ${!!GameRoom.allRoomsData[this.roomId]}`,
+      );
+    }
+    GameRoom.allRoomsData[this.roomId] = this;
+  }
+
+  // use this to add to the memory, will let socket listener handle rebroadcasting
+  addChatMessage(msg: ChatDataI) {
+    // worth double checking the msg is going to this roomId before saving
+    if (msg.roomId !== this.roomId) {
+      throw new Error(
+        `Tried saving a chat message to the wrong room. Expected: ${this.roomId}, Received: ${msg.roomId}`,
+      );
+    }
+    // make sure this player is part of this room
+    if (!this.players.includes(msg.userId)) {
+      throw new Error("Msg sent by user not in this room");
+    }
+    this.chat.push(msg);
+  }
+
+  // return true if a change happened
+  onJoin(newId: string): boolean {
+    // make sure to only add an id if it's not already in the player list
+    if (!this.players.includes(newId)) {
+      this.players.push(newId);
+      return true;
+    }
+    return false;
+  }
+
+  // call when they leave the room, let socket logic handle these checks with a timeout for disconnects
+  onLeave(removeId: string): boolean {
+    // return early if this id isn't a player
+    if (this.players.includes(removeId)) {
+      return false;
+    }
+    // remove this id from the players. will assume host changes are handled automatically
+    this.players = this.players.filter((userId) => userId !== removeId);
+
+    // if all players have left, close the room
+    if (this.players.length <= 0) {
+      this.closeRoom();
+    }
+    return true;
+  }
+
+  /**
+   * Remove this room from global tracking. Will be called automatically when the last player leaves a room.
+   * TODO: Set up some kind of timer to remove rooms that are inactive for too long
+   */
+  closeRoom() {
+    delete GameRoom.allRoomsData[this.roomId];
+  }
+}
