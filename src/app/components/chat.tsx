@@ -1,11 +1,15 @@
 "use client";
-import { useSocketContext } from "~/context/socket";
+import { useSocketContext } from "~/app/context/room_context";
 import React from "react";
 
 export default function Chat() {
   const { socket, room, userId, setRoom } = useSocketContext();
 
-  const { roomId, chat } = room ?? {};
+  if (!room) {
+    throw new Error("Shouldn't render chat until room is available");
+  }
+
+  const { roomId, chat } = room;
 
   const sendChat = (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -22,10 +26,16 @@ export default function Chat() {
     };
 
     socket.emit("message", msgObj);
-    setRoom((current) => ({
-      ...current,
-      chat: [...current.chat, msgObj],
-    }));
+    setRoom((current) => {
+      // shouldn't be possible for current to be empty here, but doing the check anyway for type safety
+      if (!current) {
+        return current;
+      }
+      return {
+        ...current,
+        chat: [...current.chat, msgObj],
+      };
+    });
   };
 
   return (

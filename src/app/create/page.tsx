@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 
-import { useSocketContext } from "~/context/socket";
+import { useSocketContext } from "~/app/context/room_context";
 
 export default function CreateRoomPage() {
   const { socket } = useSocketContext();

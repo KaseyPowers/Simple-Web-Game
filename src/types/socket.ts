@@ -5,6 +5,7 @@ import type { Socket as ClientSocket } from "socket.io-client";
 import type {
   RoomServerToClientEvents,
   RoomClientToServerEvents,
+  RoomSocketData,
 } from "~/game_logic/room_types";
 
 type ServerToClientEvents = RoomServerToClientEvents;
@@ -16,9 +17,9 @@ interface InterServerEvents {
   ping: () => void;
 }
 
-interface SocketData {
+type SocketData = RoomSocketData & {
   userId: string;
-}
+};
 
 export type ServerType = Server<
   ClientToServerEvents,

@@ -8,7 +8,7 @@ import { getServerAuthSession } from "~/server/auth";
 
 import { TRPCReactProvider } from "~/trpc/react";
 
-import { SocketIOProvider } from "~/context/socket";
+import { SocketIOProvider } from "~/app/context/room_context";
 
 import baseStyles from "~/styles/base_styles";
 

@@ -1,6 +1,7 @@
 import cryptoRandomString from "crypto-random-string";
 
-import type { ChatDataI, GameRoomDataI } from "./room_types";
+import type { ChatDataI, GameRoomDataI, PlayerDataI } from "./room_types";
+import { string } from "zod";
 /**
  * NOTES:
  * - Should I have the sockets use the roomId raw or do something like `room_${roomId}`
@@ -10,8 +11,16 @@ import type { ChatDataI, GameRoomDataI } from "./room_types";
 export default class GameRoom implements GameRoomDataI {
   roomId: string;
 
+  // Quick Static attributes + functions
   // track all the games that are active
   static allRoomsData: Record<string, GameRoom> = {};
+  /**
+   * Remove this room from global tracking. Will be called automatically when the last player leaves a room.
+   * TODO: Set up some kind of timer to remove rooms that are inactive for too long
+   */
+  closeRoom() {
+    delete GameRoom.allRoomsData[this.roomId];
+  }
 
   chat: ChatDataI[] = [];
 
@@ -22,11 +31,37 @@ export default class GameRoom implements GameRoomDataI {
    */
   players: string[] = [];
 
+  /**
+   * Tracking if a player is online or not
+   */
+  playersOnline: Record<string, boolean> = {};
+
+  // fn will make sure the playersOnline keys matches the players in room
+  verifyOnlineObj() {
+    // rebuilding the object each time might not be as efficient but is readable approach for now:
+    this.playersOnline = this.players.reduce<typeof this.playersOnline>(
+      (output, userId) => {
+        return {
+          ...output,
+          // default to assuming any player added for the first time is online
+          [userId]: this.playersOnline[userId] ?? true,
+        };
+      },
+      {},
+    );
+  }
+
+  getPlayerData(): PlayerDataI {
+    return {
+      players: this.players,
+      playersOnline: this.playersOnline,
+    };
+  }
   getData(): GameRoomDataI {
     return {
       roomId: this.roomId,
       chat: this.chat,
-      players: this.players,
+      ...this.getPlayerData(),
     };
   }
 
@@ -35,7 +70,10 @@ export default class GameRoom implements GameRoomDataI {
 
   // constructor called with the userId of whoever creates the room as admin
   constructor(userId: string) {
-    this.players = [userId];
+    this.players = [];
+    this.playersOnline = {};
+
+    this.addPlayer(userId);
 
     // setting roomId is last step before adding to the object
     // NOTE: using library to make a shorter id that will be easier to type manually into a browser if that's how it's being shared.
@@ -48,6 +86,14 @@ export default class GameRoom implements GameRoomDataI {
       );
     }
     GameRoom.allRoomsData[this.roomId] = this;
+  }
+
+  // update players online status, and returns flag if this caused a change
+  setPlayerStatus(userId: string, status = true): boolean {
+    // check if the new status matches existing one
+    const changed = this.playersOnline[userId] !== status;
+    this.playersOnline[userId] = status;
+    return changed;
   }
 
   // use this to add to the memory, will let socket listener handle rebroadcasting
@@ -66,36 +112,27 @@ export default class GameRoom implements GameRoomDataI {
   }
 
   // return true if a change happened
-  onJoin(newId: string): boolean {
+  addPlayer(newId: string): boolean {
     // make sure to only add an id if it's not already in the player list
     if (!this.players.includes(newId)) {
       this.players.push(newId);
+      // NOTE: verify defaults to true, so don't need to use playerActivity check.
+      this.verifyOnlineObj();
       return true;
     }
     return false;
   }
 
   // call when they leave the room, let socket logic handle these checks with a timeout for disconnects
-  onLeave(removeId: string): boolean {
+  removePlayer(removeId: string): boolean {
     // return early if this id isn't a player
     if (this.players.includes(removeId)) {
       return false;
     }
     // remove this id from the players. will assume host changes are handled automatically
     this.players = this.players.filter((userId) => userId !== removeId);
+    this.verifyOnlineObj();
 
-    // if all players have left, close the room
-    if (this.players.length <= 0) {
-      this.closeRoom();
-    }
     return true;
-  }
-
-  /**
-   * Remove this room from global tracking. Will be called automatically when the last player leaves a room.
-   * TODO: Set up some kind of timer to remove rooms that are inactive for too long
-   */
-  closeRoom() {
-    delete GameRoom.allRoomsData[this.roomId];
   }
 }
