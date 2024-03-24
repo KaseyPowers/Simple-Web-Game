@@ -3,11 +3,13 @@ import { Server } from "socket.io";
 // import { getServerAuthSession } from "~/server/auth";
 
 import type { NextApiRequest } from "next";
-import type { NextApiResponseServerIO } from "~/types/next";
+import type {
+  NextApiResponseServerIO,
+  ServerType,
+  ServerSocketType,
+} from "~/utils/socket_types";
 
-import type { ServerType, ServerSocketType } from "~/types/socket";
-
-import { roomHandlers } from "~/game_logic/room_handlers";
+import { roomHandlers } from "~/game_logic/game_room/room_handlers";
 
 export default function SocketHandler(
   req: NextApiRequest,

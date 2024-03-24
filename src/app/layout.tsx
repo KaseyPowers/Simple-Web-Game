@@ -6,13 +6,10 @@ import { Inter } from "next/font/google";
 
 import { getServerAuthSession } from "~/server/auth";
 
-import { TRPCReactProvider } from "~/trpc/react";
-
-import { SocketIOProvider } from "~/app/context/room_context";
+import ContextProviders from "./providers";
 
 import baseStyles from "~/styles/base_styles";
-
-import Navbar from "./navbar";
+import Navbar from "~/app/navbar";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -35,17 +32,16 @@ export default async function RootLayout({
     <html lang="en">
       <body
         className={clsx(
+          "flex h-dvh flex-col items-stretch",
           "font-sans",
           inter.variable,
           baseStyles.backgrounds.main,
           baseStyles.typography.colors.main,
         )}
       >
-        <TRPCReactProvider>
-          <Navbar>
-            <SocketIOProvider session={session}>{children}</SocketIOProvider>
-          </Navbar>
-        </TRPCReactProvider>
+        <ContextProviders session={session}>
+          <Navbar>{children}</Navbar>
+        </ContextProviders>
       </body>
     </html>
   );

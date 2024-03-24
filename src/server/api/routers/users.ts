@@ -13,22 +13,22 @@ export const usersRouter = createTRPCRouter({
       where: {
         id: input,
       },
-      // select: {
-      //     id: true,
-      //     image: true,
-      //     name: true,
-      // }
+      select: {
+        id: true,
+        name: true,
+        image: true,
+      },
     });
   }),
-  playersByIds: protectedProcedure
-    .input(z.object({ players: z.string().array() }))
-    .query(({ ctx, input }) => {
-      return ctx.db.user.findMany({
-        where: {
-          id: {
-            in: input.players,
-          },
-        },
-      });
-    }),
+  // playersByIds: protectedProcedure
+  //   .input(z.object({ players: z.string().array() }))
+  //   .query(({ ctx, input }) => {
+  //     return ctx.db.user.findMany({
+  //       where: {
+  //         id: {
+  //           in: input.players,
+  //         },
+  //       },
+  //     });
+  //   }),
 });
