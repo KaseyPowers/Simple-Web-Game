@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import socket from "~/game_logic/client_socket";
+import socket from "~/socket_io/client";
 
 import Button from "~/components/button";
 import SubmitInput from "~/components/submit_input";

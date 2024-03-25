@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from "react";
 
-import socket from "~/game_logic/client_socket";
+import socket from "./client";
 
 export default function useSocket(userId?: string) {
   useEffect(() => {

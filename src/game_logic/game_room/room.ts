@@ -1,7 +1,6 @@
 import cryptoRandomString from "crypto-random-string";
 
 import type { ChatDataI, GameRoomDataI, PlayerDataI } from "./room_types";
-import { string } from "zod";
 /**
  * NOTES:
  * - Should I have the sockets use the roomId raw or do something like `room_${roomId}`
