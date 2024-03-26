@@ -5,7 +5,8 @@
 import { waitFor, testUseSocketIOServer } from "./test_utils";
 
 describe.only("socket test utils/base socket logic", () => {
-  const { getIO, getClientSocket, getServerSocket } = testUseSocketIOServer();
+  const { getIO, getClientSocket, getServerSocket, getBothSockets } =
+    testUseSocketIOServer();
 
   test("io should be defined", () => {
     const io = getIO();
@@ -69,6 +70,30 @@ describe.only("socket test utils/base socket logic", () => {
           resolve();
         });
       });
+    });
+
+    test("getBothSockets util works", async () => {
+      const userId = "test_user";
+      const { serverSocket, clientSocket } = await getBothSockets(userId);
+      // getBothSockets provides basic verification testing of both sockets, so here we just double check they are returned correctly.
+      expect(serverSocket).toBeDefined();
+      expect(clientSocket).toBeDefined();
+    });
+
+    test("should be able to get multiple sperate socket sets for the same userId (simulating multiple tabs)", async () => {
+      const userId = "test_user";
+      // these tests will have some redundant checks for what is done by `getBothSockets` but will make this test easier to read on it's own and add a catch in case we change the util's behavior
+      const firstSockets = await getBothSockets(userId);
+      // verify the sockets match up. according to socketIO docks, they should have the same id
+      expect(firstSockets.clientSocket.id).toBe(firstSockets.serverSocket.id);
+
+      const secondSockets = await getBothSockets(userId);
+      // verify second set of sockets match up too
+      expect(secondSockets.clientSocket.id).toBe(secondSockets.serverSocket.id);
+      // make sure the first and second set of sockets are unique
+      expect(firstSockets.clientSocket.id).not.toBe(
+        secondSockets.clientSocket.id,
+      );
     });
   });
 });

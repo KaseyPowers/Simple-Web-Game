@@ -8,8 +8,7 @@ import type {
   ClientSocketType,
 } from "./socket_types";
 import { baseClientOptions } from "./socket_configs";
-import { getSocketServer } from "./server";
-import { Server as SocketServer } from "socket.io";
+import getSocketServer from "./server";
 
 export function waitFor(
   socket: ServerSocketType | ClientSocketType,
@@ -47,7 +46,6 @@ export function testUseSocketIOServer() {
         "ClientPath should always be defined as long as this is called within the right context",
       );
     }
-    console.log(`Creating a client for userId: ${userId}`);
     const clientSocket = ioc(clientPath, {
       ...baseClientOptions,
       forceNew: true,
@@ -65,7 +63,6 @@ export function testUseSocketIOServer() {
       serverSockets.set(
         userId,
         new Promise<ServerSocketType>((resolve) => {
-          console.log(`saving the socket resolver for ${userId}`);
           serverSocketResolves[userId] = resolve;
         }),
       );
@@ -78,11 +75,58 @@ export function testUseSocketIOServer() {
     return serverSockets.get(userId);
   }
 
+  // TODO: This working in tests feels like a fluke that could mess up with race conditions, if that comes up, probably should rewrite the logic with auto connects and resolve by socketId instead of userId 
+  // with this function added, the other two probably aren't needed for most cases, but will be exported for the utils testing
+  function getBothSockets(userId: string) {
+    const clientSocket = getClientSocket(userId);
+    clientSocket.connect();
+    return Promise.all([
+      getServerSocket(userId),
+      new Promise<void>((resolve) => {
+        clientSocket.on("connect", () => {
+          resolve();
+        });
+      }),
+    ]).then(([serverSocket]) => {
+      if (!serverSocket) {
+        throw new Error(
+          "getBothSockets wasn't able to get the server socket for some reason",
+        );
+      }
+
+      expect(clientSocket).toBeDefined();
+      expect(clientSocket.connected).toBeTruthy();
+      // common tests can be defined here, to verify the state before continuing.
+      expect(serverSocket).toBeDefined();
+      expect(serverSocket.data.userId).toBe(userId);
+      expect(serverSocket.id).toBe(clientSocket.id);
+      expect(serverSocket.rooms.has(userId)).toBeTruthy();
+      return {
+        serverSocket,
+        clientSocket,
+      };
+    });
+  }
+
   beforeAll((done) => {
     httpServer = createServer();
     const httpServerAddr = httpServer.listen().address() as AddressInfo;
     clientPath = `http://localhost:${httpServerAddr.port}`;
     io = getSocketServer(httpServer);
+    // set up the connection listener for this socket
+    io.on("connection", (socket: ServerSocketType) => {
+      const { userId } = socket.data;
+      // make sure we have this userId in the relevant promise logics
+      const resolver = serverSocketResolves[userId];
+      if (resolver) {
+        // resolve the socket
+        resolver(socket);
+      } else {
+        throw new Error(
+          `No resolver was found for the userId of a connected socket, this shouldn't be possible unless the setup utils have failed`,
+        );
+      }
+    });
     done();
   });
 
@@ -90,19 +134,6 @@ export function testUseSocketIOServer() {
     serverSockets = new Map();
     serverSocketResolves = {};
     clientSockets = [];
-    // set up the connection listener for this socket
-    io.on("connection", (socket: ServerSocketType) => {
-      console.log("On server connection, checking userId");
-      const { userId } = socket.data;
-      // make sure we have this userId in the relevant promise logics
-      if (serverSocketResolves[userId]) {
-        console.log(`${userId} to be resolved`);
-        // resolve the socket and delete the record from the
-        serverSocketResolves[userId](socket);
-      } else {
-        console.log("resolver not found?");
-      }
-    });
   });
   afterEach(() => {
     clientSockets.forEach((socket) => {
@@ -121,5 +152,6 @@ export function testUseSocketIOServer() {
     getIO: () => io,
     getClientSocket,
     getServerSocket,
+    getBothSockets,
   };
 }
