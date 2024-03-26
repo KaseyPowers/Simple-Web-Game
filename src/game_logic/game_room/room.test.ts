@@ -21,11 +21,7 @@ mockedRandomString.mockImplementation(() => {
   
 // const cryptoRandomString = require("crypto-random-string");
 
-
-
-// temp disable while writing test
-// eslint-disable-next-line jest/no-focused-tests
-describe.only("GameRoom class", () => {
+describe("GameRoom class", () => {
     beforeEach(() => {
         // reset the room data between tests
         GameRoom['allRoomsData'] = {};

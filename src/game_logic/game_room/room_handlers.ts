@@ -94,7 +94,7 @@ export function roomHandlers(io: ServerType, socket: ServerSocketType) {
       const hasChange = room.removePlayer(userId);
       if (hasChange) {
         // if this was last player to leave, close the room
-        if (room.isEmpty()) {
+        if (room.isEmpty) {
           // closeRoom handles having sockets leave, so return
           await closeRoom(io, roomId);
           return;

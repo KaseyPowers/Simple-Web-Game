@@ -4,16 +4,20 @@
 
 import { waitFor, testUseSocketIOServer } from "./test_utils";
 
-describe.only("socket test utils/base socket logic", () => {
+
+  // NOTE: try 10 second timeout
+  jest.setTimeout(10 * 1000);
+
+describe("socket test utils/base socket logic", () => {
   const { getIO, getClientSocket, getServerSocket, getBothSockets } =
     testUseSocketIOServer();
 
-  test("io should be defined", () => {
+  it("io should be defined", () => {
     const io = getIO();
     expect(io).toBeDefined();
   });
 
-  test("getClientSocket will return a socket (but not connected)", () => {
+  it("getClientSocket will return a socket (but not connected)", () => {
     const socketA = getClientSocket();
     expect(socketA).toBeDefined();
     expect(socketA.connected).toBeFalsy();
@@ -23,7 +27,7 @@ describe.only("socket test utils/base socket logic", () => {
     expect(socketB.auth).toEqual({ userId: "with_user_id" });
     expect(socketB.connected).toBeFalsy();
   });
-  test("getClientSocket will create a serverSocket promise if userId defined", () => {
+  it("getClientSocket will create a serverSocket promise if userId defined", () => {
     const userId = "with_user_id";
     const clientSocket = getClientSocket(userId);
     expect(clientSocket.auth).toEqual({ userId: userId });
@@ -31,7 +35,7 @@ describe.only("socket test utils/base socket logic", () => {
   });
 
   describe("socket connections work", () => {
-    test("can connect to server", (done) => {
+    it("can connect to server", (done) => {
       const userId = "test_user";
       const clientSocket = getClientSocket(userId);
       clientSocket.on("connect", () => {
@@ -42,7 +46,7 @@ describe.only("socket test utils/base socket logic", () => {
       clientSocket.connect();
     });
 
-    test("can't connect to server without userId", (done) => {
+    it("can't connect to server without userId", (done) => {
       const clientSocket = getClientSocket();
       clientSocket.on("connect_error", (err) => {
         expect(err).toBeInstanceOf(Error);
@@ -52,7 +56,7 @@ describe.only("socket test utils/base socket logic", () => {
       clientSocket.connect();
     });
 
-    test("can get the server socket", async () => {
+    it("can get the server socket", async () => {
       const userId = "test_user";
       const clientSocket = getClientSocket(userId);
       const serverSocketPromise = getServerSocket(userId);
@@ -72,7 +76,7 @@ describe.only("socket test utils/base socket logic", () => {
       });
     });
 
-    test("getBothSockets util works", async () => {
+    it("getBothSockets util works", async () => {
       const userId = "test_user";
       const { serverSocket, clientSocket } = await getBothSockets(userId);
       // getBothSockets provides basic verification testing of both sockets, so here we just double check they are returned correctly.
@@ -80,7 +84,7 @@ describe.only("socket test utils/base socket logic", () => {
       expect(clientSocket).toBeDefined();
     });
 
-    test("should be able to get multiple sperate socket sets for the same userId (simulating multiple tabs)", async () => {
+    it("should be able to get multiple sperate socket sets for the same userId (simulating multiple tabs)", async () => {
       const userId = "test_user";
       // these tests will have some redundant checks for what is done by `getBothSockets` but will make this test easier to read on it's own and add a catch in case we change the util's behavior
       const firstSockets = await getBothSockets(userId);
@@ -96,4 +100,24 @@ describe.only("socket test utils/base socket logic", () => {
       );
     });
   });
+
+  describe("waitFor", () => {
+    it("should work for client event", async () => {
+      const userId = "test_user";
+      // these tests will have some redundant checks for what is done by `getBothSockets` but will make this test easier to read on it's own and add a catch in case we change the util's behavior
+      const {clientSocket, serverSocket} = await getBothSockets(userId);
+      clientSocket.emit("hello", "world");
+      const response = await waitFor(serverSocket, "hello");
+      expect(response).toBe("world");
+    });
+
+    it("should work for multiple argument events", async () => {
+      const userId = "test_user";
+      // these tests will have some redundant checks for what is done by `getBothSockets` but will make this test easier to read on it's own and add a catch in case we change the util's behavior
+      const {clientSocket, serverSocket} = await getBothSockets(userId);
+      clientSocket.emit("hello", "world", "two");
+      const response = await waitFor(serverSocket, "hello");
+      expect(response).toEqual(["world", "two"]);
+    });
+  })
 });

@@ -7,15 +7,7 @@ import { roomHandlers } from "~/game_logic/game_room/room_handlers";
 
 import { socketPath } from "./socket_configs";
 
-export function addAllSocketHandlers(io: ServerType) {
-  const onConnection = (socket: ServerSocketType) => {
-    roomHandlers(io, socket);
-  };
-
-  io.on("connection", onConnection);
-}
-
-export default function buildServerSocket(netServer: NetServer) {
+export function geSocketServer(netServer: NetServer) {
   // @ts-expect-error this server pattern from example and not sure how to dig into this deep of types to fix
   const io: ServerType = new Server(netServer, {
     path: socketPath,
@@ -38,6 +30,17 @@ export default function buildServerSocket(netServer: NetServer) {
     void socket.join(userId);
     next();
   });
-  addAllSocketHandlers(io);
+
+  return io;
+}
+
+export default function buildServerSocket(netServer: NetServer) {
+  const io = geSocketServer(netServer);
+  
+  const onConnection = (socket: ServerSocketType) => {
+    roomHandlers(io, socket);
+  };
+
+  io.on("connection", onConnection);
   return io;
 }

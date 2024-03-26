@@ -8,14 +8,16 @@ import type {
   ClientSocketType,
 } from "./socket_types";
 import { baseClientOptions } from "./socket_configs";
-import getSocketServer from "./server";
+import buildServerSocket, {getSocketServer} from "./server";
 
 export function waitFor(
   socket: ServerSocketType | ClientSocketType,
   event: string,
 ) {
   return new Promise((resolve) => {
-    socket.once(event, resolve);
+    socket.once(event, (...args) => {
+      resolve(args.length <= 1 ? args[0] : args);
+    });
   });
 }
 
@@ -25,9 +27,7 @@ type ServerSocketResolver = (
 
 // type getClientSocketFn = () => ClientSocket;
 // test setup for initializing the io server
-export function testUseSocketIOServer() {
-  // NOTE: try 10 second timeout
-  jest.setTimeout(10 * 1000);
+export function testUseSocketIOServer(skipHandlers?: boolean) {
   // before all, set up an httpServer
   let httpServer: Server;
   // listen for the port to generate this path, that way multiple clients can be generated
@@ -107,12 +107,13 @@ export function testUseSocketIOServer() {
       };
     });
   }
+  getBothSockets.assertionCount = 6;
 
   beforeAll((done) => {
     httpServer = createServer();
     const httpServerAddr = httpServer.listen().address() as AddressInfo;
     clientPath = `http://localhost:${httpServerAddr.port}`;
-    io = getSocketServer(httpServer);
+    io = skipHandlers ? getSocketServer(httpServer) : buildServerSocket(httpServer);
     // set up the connection listener for this socket
     io.on("connection", (socket: ServerSocketType) => {
       const { userId } = socket.data;
