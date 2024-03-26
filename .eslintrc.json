@@ -41,8 +41,14 @@
     {
       "files": ["src/**/*.test.ts?(x)"],
       "plugins": ["jest"],
+      "extends": ["plugin:jest/recommended"],
       "env": {
         "jest/globals": true
+      },
+      "rules": {
+        "jest/consistent-test-it": "error",
+        "jest/prefer-hooks-in-order": "error",
+        "jest/prefer-hooks-on-top": "error"
       }
     }
   ]

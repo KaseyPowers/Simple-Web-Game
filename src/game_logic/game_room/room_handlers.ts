@@ -36,7 +36,7 @@ const hasSocketsInRoom = async (
 /** Close the game room and send leave event to all sockets in the socket-room */
 const closeRoom = async (io: ServerType, roomId: string) => {
   // check if room exists still, and delete it if so
-  GameRoom.allRoomsData[roomId]?.closeRoom();
+  GameRoom.closeRoom(roomId);
   // fetch all the sockets that use this room Id, then make sure they leave this room and send event to update
   const sockets = await io.in(roomId).fetchSockets();
 
@@ -87,14 +87,14 @@ export function roomHandlers(io: ServerType, socket: ServerSocketType) {
 
   // leave room callback, defined seperately so it can be used by the disconnect event too
   async function leaveRoom(userId: string, roomId: string) {
-    const room = GameRoom.allRoomsData[roomId];
+    const room = GameRoom.findRoom(roomId);
     // only do room logic if room exists
     if (room) {
       // fn returns true if player was in room to leave
       const hasChange = room.removePlayer(userId);
       if (hasChange) {
         // if this was last player to leave, close the room
-        if (room.players.length <= 0) {
+        if (room.isEmpty()) {
           // closeRoom handles having sockets leave, so return
           await closeRoom(io, roomId);
           return;
@@ -138,7 +138,7 @@ export function roomHandlers(io: ServerType, socket: ServerSocketType) {
 
   socket.on("join_room", async (roomId, callback) => {
     // first step is make sure the roomId is even valid
-    const room = GameRoom.allRoomsData[roomId];
+    const room = GameRoom.findRoom(roomId);
     if (!room) {
       callback("Sorry! That room doesn't exist");
       return;
@@ -182,7 +182,7 @@ export function roomHandlers(io: ServerType, socket: ServerSocketType) {
 
   socket.on("disconnect", async () => {
     const { userId, roomId } = socket.data;
-    const room = roomId && GameRoom.allRoomsData[roomId];
+    const room = roomId && GameRoom.findRoom(roomId);
     // room handlers only care about disconnect if the socket is in a room
     if (!room) {
       return;
@@ -245,7 +245,7 @@ export function roomHandlers(io: ServerType, socket: ServerSocketType) {
       );
     }
 
-    const room = GameRoom.allRoomsData[msg.roomId];
+    const room = GameRoom.findRoom(msg.roomId);
     if (!room) {
       throw new Error("Tried messaging a room that didn't exist");
     }

@@ -7,36 +7,46 @@ import type { ChatDataI, GameRoomDataI, PlayerDataI } from "./room_types";
  * - Should I be using callbacks to return errors or let the thrown errors do whatever they do?
  */
 
-export default class GameRoom implements GameRoomDataI {
-  roomId: string;
+export default class GameRoom {
+  readonly roomId: string;
 
   // Quick Static attributes + functions
   // track all the games that are active
-  static allRoomsData: Record<string, GameRoom> = {};
-  /**
-   * Remove this room from global tracking. Will be called automatically when the last player leaves a room.
-   * TODO: Set up some kind of timer to remove rooms that are inactive for too long
+  private static allRoomsData: Record<string, GameRoom> = {};
+
+  static findRoom(roomId: string) {
+    return this.allRoomsData[roomId];
+  }
+   /**
+   * Remove this room from global tracking. Should be called automatically when the last player leaves a room. (by the handlers)
+   * TODO: Set up some kind of timer to remove rooms that are inactive for too long?
    */
+  static closeRoom(roomId: string) {
+    delete GameRoom.allRoomsData[roomId];
+  } 
   closeRoom() {
-    delete GameRoom.allRoomsData[this.roomId];
+    GameRoom.closeRoom(this.roomId);
   }
 
-  chat: ChatDataI[] = [];
+  protected chat: ChatDataI[] = [];
 
   /**
    * Track all the players that are in this room.
    * Will have a system for checking for disconects from multiple tabs before dropping them from the list.
    * Also will have the host/admin/manager/term-tbd just be whoever is at index-0
    */
-  players: string[] = [];
+  protected players: string[] = [];
+  get isEmpty() {
+    return this.players.length <= 0;
+  }
 
   /**
    * Tracking if a player is online or not
    */
-  playersOnline: Record<string, boolean> = {};
+  protected playersOnline: Record<string, boolean> = {};
 
   // fn will make sure the playersOnline keys matches the players in room
-  verifyOnlineObj() {
+  protected verifyOnlineObj() {
     // rebuilding the object each time might not be as efficient but is readable approach for now:
     this.playersOnline = this.players.reduce<typeof this.playersOnline>(
       (output, userId) => {
@@ -89,23 +99,27 @@ export default class GameRoom implements GameRoomDataI {
 
   // update players online status, and returns flag if this caused a change
   setPlayerStatus(userId: string, status = true): boolean {
+    // skip when players doesn't have this user
+    if (!this.players.includes(userId)) {
+      return false;
+    }
     // check if the new status matches existing one
     const changed = this.playersOnline[userId] !== status;
     this.playersOnline[userId] = status;
     return changed;
   }
-
   // use this to add to the memory, will let socket listener handle rebroadcasting
   addChatMessage(msg: ChatDataI) {
     // worth double checking the msg is going to this roomId before saving
     if (msg.roomId !== this.roomId) {
       throw new Error(
-        `Tried saving a chat message to the wrong room. Expected: ${this.roomId}, Received: ${msg.roomId}`,
+        `Tried adding a chat message to the wrong room. Expected: ${this.roomId}, Received: ${msg.roomId}`,
       );
     }
     // make sure this player is part of this room
     if (!this.players.includes(msg.userId)) {
-      throw new Error("Msg sent by user not in this room");
+      // NOTE: Should I throw an error here or just ignore it like add/removePlayer and playerStatus functions?
+      throw new Error("Message sent by user not in this room");
     }
     this.chat.push(msg);
   }
@@ -125,7 +139,7 @@ export default class GameRoom implements GameRoomDataI {
   // call when they leave the room, let socket logic handle these checks with a timeout for disconnects
   removePlayer(removeId: string): boolean {
     // return early if this id isn't a player
-    if (this.players.includes(removeId)) {
+    if (!this.players.includes(removeId)) {
       return false;
     }
     // remove this id from the players. will assume host changes are handled automatically
