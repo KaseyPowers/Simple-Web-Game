@@ -147,6 +147,8 @@ export function roomHandlers(io: ServerType, socket: ServerSocketType) {
     if (socket.data.roomId) {
       // already in this room, so no point in doing the rest
       if (socket.data.roomId === roomId) {
+        // make sure the player's online status is true (in case of disconnects)
+        setPlayerStatus(room, socket.data.userId, true);
         // return callback true for a valid room or should it return a message about already being in the room?
         callback(true);
         return;

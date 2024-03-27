@@ -100,8 +100,7 @@ describe("GameRoom class", () => {
         expect(() => {
             new GameRoom(userId);
         }).toThrow("Somehow created a room for an id that already exists!");
-    })
-    it.todo("Mock crypto to verify error when creating two rooms that get the same room id?");
+    });
 
     describe("Get Data Objects", () => {
         it("getPlayerData", () => {
@@ -461,6 +460,8 @@ describe("GameRoom class", () => {
         // set to true again
         expect(testRoom.setPlayerStatus(userId, true)).toBeFalsy();
      });
+
+     it.todo("adding an already existing player should set status to online if not");
 
 
      describe("addChatMessage", () => {
