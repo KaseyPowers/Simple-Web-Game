@@ -6,7 +6,7 @@ import Page from "./page";
 
 // mocking setup
 jest.mock("next/navigation");
-jest.mock("~/socket_io/client");
+jest.mock("~/game_logic/socket_io/client");
 
 describe("Landing Page", () => {
   test("renders succesfully", () => {

@@ -10,7 +10,7 @@ import type {
   RoomServerToClientEvents,
   RoomClientToServerEvents,
   RoomSocketData,
-} from "~/game_logic/game_room/room_types";
+} from "../game_room/room_types";
 
 type ServerToClientEvents = RoomServerToClientEvents;
 

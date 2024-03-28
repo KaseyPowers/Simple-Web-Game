@@ -1,6 +1,8 @@
 import { createServer, type Server } from "node:http";
 import { type AddressInfo } from "node:net";
-import { io as ioc } from "socket.io-client";
+
+import { type Socket as BaseServerSocket } from "socket.io";
+import { io as ioc, type Socket as BaseClientSocket } from "socket.io-client";
 
 import type {
   ServerSocketType,
@@ -8,17 +10,28 @@ import type {
   ClientSocketType,
 } from "./socket_types";
 import { baseClientOptions } from "./socket_configs";
-import buildServerSocket, {getSocketServer} from "./server";
+import buildServerSocket, { getSocketServer } from "./server";
 
-export function waitFor(
-  socket: ServerSocketType | ClientSocketType,
+export function waitFor<T>(
+  socket: BaseServerSocket | BaseClientSocket,
   event: string,
 ) {
-  return new Promise((resolve) => {
+  return new Promise<T>((resolve) => {
     socket.once(event, (...args) => {
-      resolve(args.length <= 1 ? args[0] : args);
+      // there has to be a better way to do this than casting as T, but started to get real complicated, can revist later
+      const output = (args.length <= 1 ? args[0] : args) as T;
+      resolve(output);
     });
   });
+}
+
+export function getEventListener(
+  socket: BaseServerSocket | BaseClientSocket,
+  event: string,
+) {
+  const listener = jest.fn();
+  socket.on(event, listener);
+  return listener;
 }
 
 type ServerSocketResolver = (
@@ -75,7 +88,7 @@ export function testUseSocketIOServer(skipHandlers?: boolean) {
     return serverSockets.get(userId);
   }
 
-  // TODO: This working in tests feels like a fluke that could mess up with race conditions, if that comes up, probably should rewrite the logic with auto connects and resolve by socketId instead of userId 
+  // TODO: This working in tests feels like a fluke that could mess up with race conditions, if that comes up, probably should rewrite the logic with auto connects and resolve by socketId instead of userId
   // with this function added, the other two probably aren't needed for most cases, but will be exported for the utils testing
   function getBothSockets(userId: string) {
     const clientSocket = getClientSocket(userId);
@@ -113,7 +126,9 @@ export function testUseSocketIOServer(skipHandlers?: boolean) {
     httpServer = createServer();
     const httpServerAddr = httpServer.listen().address() as AddressInfo;
     clientPath = `http://localhost:${httpServerAddr.port}`;
-    io = skipHandlers ? getSocketServer(httpServer) : buildServerSocket(httpServer);
+    io = skipHandlers
+      ? getSocketServer(httpServer)
+      : buildServerSocket(httpServer);
     // set up the connection listener for this socket
     io.on("connection", (socket: ServerSocketType) => {
       const { userId } = socket.data;

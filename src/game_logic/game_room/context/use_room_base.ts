@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { ClientSocketType } from "~/socket_io/socket_types";
+import type { ClientSocketType } from "~/game_logic/socket_io/socket_types";
 import type { GameRoomDataI } from "../room_types";
 
 export interface RoomBaseI {

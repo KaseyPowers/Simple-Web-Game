@@ -1,5 +1,8 @@
 import type { RemoteSocket } from "socket.io";
-import type { ServerType, ServerSocketType } from "~/socket_io/socket_types";
+import type {
+  ServerType,
+  ServerSocketType,
+} from "~/game_logic/socket_io/socket_types";
 import type { RoomServerToClientEvents, RoomSocketData } from "./room_types";
 
 import GameRoom from "./room";
@@ -77,6 +80,14 @@ function socketLeaveRoom(
   socket.emit("leave_room", roomId);
 }
 
+type setStatusFnType = (
+  room: GameRoom,
+  ...args: Parameters<GameRoom["setPlayerStatus"]>
+) => void;
+
+/** 30 second delay? could change/make variable */
+export const disconnectOfflineDelay = 30 * 1000;
+
 export function roomHandlers(io: ServerType, socket: ServerSocketType) {
   // join the socket-room, and add roomId to the data
   function joinRoom(room: GameRoom) {
@@ -97,9 +108,9 @@ export function roomHandlers(io: ServerType, socket: ServerSocketType) {
         if (room.isEmpty) {
           // closeRoom handles having sockets leave, so return
           await closeRoom(io, roomId);
-          return;
+        } else {
+          onPlayerDataChange(room);
         }
-        onPlayerDataChange(room);
       }
     }
     await userLeaveRoom(io, userId, roomId);
@@ -129,6 +140,14 @@ export function roomHandlers(io: ServerType, socket: ServerSocketType) {
       .emit("players_update", room.roomId, room.getPlayerData());
   }
 
+  const setPlayerStatus: setStatusFnType = (room, userId, status) => {
+    // assuming room+userId is already verified before calling this function
+    const hasChange = room.setPlayerStatus(userId, status);
+    if (hasChange) {
+      onPlayerDataChange(room);
+    }
+  };
+
   // on create_room, start a room with this new userId
   socket.on("create_room", () => {
     const room = new GameRoom(socket.data.userId);
@@ -140,47 +159,27 @@ export function roomHandlers(io: ServerType, socket: ServerSocketType) {
     // first step is make sure the roomId is even valid
     const room = GameRoom.findRoom(roomId);
     if (!room) {
-      callback("Sorry! That room doesn't exist");
+      callback({ message: "Sorry! That room doesn't exist" });
       return;
     }
-    // if switching rooms, slight changes to how we handle it
-    if (socket.data.roomId) {
-      // already in this room, so no point in doing the rest
-      if (socket.data.roomId === roomId) {
-        // make sure the player's online status is true (in case of disconnects)
-        setPlayerStatus(room, socket.data.userId, true);
-        // return callback true for a valid room or should it return a message about already being in the room?
-        callback(true);
-        return;
-      } else {
-        // leave current room before joining new one. Only for current socket
-        await thisSocketLeaveRoom();
-      }
-    }
-    // join room class and also the socket room
-    const playersChanged = room.addPlayer(socket.data.userId);
-    // always try joining the room in case a user has multiple tabs open
-    joinRoom(room);
 
+    // if switching rooms, make sure to leave the previous room first
+    if (socket.data.roomId && socket.data.roomId !== roomId) {
+      await thisSocketLeaveRoom();
+    }
+
+    // join room class and also the socket room
+    // NOTE: this fn checks for changes from a new user or an existing (offline) user being set as online again
+    const playersChanged = room.addPlayer(socket.data.userId);
     // only send update event if a change happend
     if (playersChanged) {
       onPlayerDataChange(room);
     }
-    callback(true);
+
+    // always try joining the room in case a user has multiple tabs open
+    joinRoom(room);
+    callback();
   });
-
-  type setStatusFnType = (
-    room: GameRoom,
-    ...args: Parameters<GameRoom["setPlayerStatus"]>
-  ) => void;
-
-  const setPlayerStatus: setStatusFnType = (room, userId, status) => {
-    // assuming room+userId is already verified before calling this function
-    const hasChange = room.setPlayerStatus(userId, status);
-    if (hasChange) {
-      onPlayerDataChange(room);
-    }
-  };
 
   socket.on("disconnect", async () => {
     const { userId, roomId } = socket.data;
@@ -220,18 +219,21 @@ export function roomHandlers(io: ServerType, socket: ServerSocketType) {
           }
         };
         void fn();
-      }, 30 * 1000 /** 30 second delay? could change/make variable */);
+      }, disconnectOfflineDelay);
     }
   });
 
   // leaving room is a manual action, so consider it performed for all sockets belonging to the same user
-  socket.on("leave_room", (roomId) => {
+  socket.on("leave_room", (roomId, callback) => {
+    // whenever this get's re-organized again, can define logic seperate from handlers, to get this try/catch cleaner
     if (socket.data.roomId !== roomId) {
-      throw new Error(
-        `Socket received an event for room: ${roomId}, but socket is tied to room: ${socket.data.roomId}`,
-      );
+      callback({
+        message: `Socket couldn't leave that room. Tried to leave room: ${roomId}, but socket is ${socket.data.roomId ? `tied to room: ${socket.data.roomId}` : "not in a room"}`,
+      });
+      return;
     }
     void leaveRoom(socket.data.userId, roomId);
+    callback();
   });
 
   socket.on("message", (msg) => {

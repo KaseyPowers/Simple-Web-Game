@@ -17,13 +17,13 @@ export default class GameRoom {
   static findRoom(roomId: string) {
     return this.allRoomsData[roomId];
   }
-   /**
+  /**
    * Remove this room from global tracking. Should be called automatically when the last player leaves a room. (by the handlers)
    * TODO: Set up some kind of timer to remove rooms that are inactive for too long?
    */
   static closeRoom(roomId: string) {
     delete GameRoom.allRoomsData[roomId];
-  } 
+  }
   closeRoom() {
     GameRoom.closeRoom(this.roomId);
   }
@@ -133,7 +133,9 @@ export default class GameRoom {
       this.verifyOnlineObj();
       return true;
     }
-    return false;
+    // we hit this condition only if the userId already in the room
+    // so treat re-adding the user as verifying they are online
+    return this.setPlayerStatus(newId, true);
   }
 
   // call when they leave the room, let socket logic handle these checks with a timeout for disconnects

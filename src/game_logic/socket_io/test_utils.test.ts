@@ -10,7 +10,7 @@ import { waitFor, testUseSocketIOServer } from "./test_utils";
 
 describe("socket test utils/base socket logic", () => {
   const { getIO, getClientSocket, getServerSocket, getBothSockets } =
-    testUseSocketIOServer();
+    testUseSocketIOServer(true);
 
   it("io should be defined", () => {
     const io = getIO();
@@ -35,25 +35,29 @@ describe("socket test utils/base socket logic", () => {
   });
 
   describe("socket connections work", () => {
-    it("can connect to server", (done) => {
+    it("can connect to server", () => {
+      return new Promise<void>(resolve => {
       const userId = "test_user";
       const clientSocket = getClientSocket(userId);
       clientSocket.on("connect", () => {
         expect(clientSocket.id).toBeDefined();
         expect(clientSocket.connected).toBeTruthy();
-        done();
+        resolve();
       });
       clientSocket.connect();
     });
+    });
 
-    it("can't connect to server without userId", (done) => {
+    it("can't connect to server without userId", () => {
+      return new Promise<void>(resolve => {
       const clientSocket = getClientSocket();
       clientSocket.on("connect_error", (err) => {
         expect(err).toBeInstanceOf(Error);
         expect(err.message).toBe("Missing UserId");
-        done();
+        resolve();
       });
       clientSocket.connect();
+    });
     });
 
     it("can get the server socket", async () => {

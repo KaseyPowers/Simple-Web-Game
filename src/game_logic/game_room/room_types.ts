@@ -1,3 +1,8 @@
+import type {
+  ErrorAcknowledgementCallback,
+  EventsWithErrorAck,
+} from "../util_types";
+
 export interface ChatDataI {
   roomId: string;
   userId: string;
@@ -33,14 +38,12 @@ export interface RoomServerToClientEvents extends SharedEvents {
   players_update: (roomId: string, players: PlayerDataI) => void;
 }
 
-export interface RoomClientToServerEvents extends SharedEvents {
+export interface RoomClientToServerEvents
+  extends EventsWithErrorAck<SharedEvents> {
   // room events
   create_room: () => void;
   // join_room has a callback on if it's a valid room, still rely on room_info for data object
-  join_room: (
-    roomId: string,
-    callback: (response: true | string) => void,
-  ) => void;
+  join_room: (roomId: string, callback: ErrorAcknowledgementCallback) => void;
 }
 
 export interface RoomSocketData {

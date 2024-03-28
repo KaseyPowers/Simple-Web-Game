@@ -1,13 +1,13 @@
 import { Server } from "socket.io";
 
 import type { Server as NetServer } from "net";
+
+import { roomHandlers } from "../game_room/room_handlers";
+
 import type { ServerType, ServerSocketType } from "./socket_types";
-
-import { roomHandlers } from "~/game_logic/game_room/room_handlers";
-
 import { socketPath } from "./socket_configs";
 
-export function geSocketServer(netServer: NetServer) {
+export function getSocketServer(netServer: NetServer): ServerType {
   // @ts-expect-error this server pattern from example and not sure how to dig into this deep of types to fix
   const io: ServerType = new Server(netServer, {
     path: socketPath,
@@ -24,7 +24,7 @@ export function geSocketServer(netServer: NetServer) {
     }
     socket.data.userId = userId;
     /**
-     * NOTE/TODO: all examples show this sort of join in the `io.on("connection"` callback listener, but it makes sense to me to put it here? 
+     * NOTE/TODO: all examples show this sort of join in the `io.on("connection"` callback listener, but it makes sense to me to put it here?
      * Will need to keep an eye on this if it becomes an issue
      */
     void socket.join(userId);
@@ -34,9 +34,9 @@ export function geSocketServer(netServer: NetServer) {
   return io;
 }
 
-export default function buildServerSocket(netServer: NetServer) {
-  const io = geSocketServer(netServer);
-  
+export default function buildServerSocket(netServer: NetServer): ServerType {
+  const io = getSocketServer(netServer);
+
   const onConnection = (socket: ServerSocketType) => {
     roomHandlers(io, socket);
   };
