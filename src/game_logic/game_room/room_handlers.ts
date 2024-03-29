@@ -116,24 +116,6 @@ export function roomHandlers(io: ServerType, socket: ServerSocketType) {
     await userLeaveRoom(io, userId, roomId);
   }
 
-  // leave room fn has 2 modes, one to remove user completely from room, and one for just removing this socket with a check if that means leaving the room completely
-  async function thisSocketLeaveRoom() {
-    // grab the userId and current roomId
-    const { userId, roomId } = socket.data;
-    // return early if no roomId assigned yet
-    if (!roomId) {
-      return;
-    }
-    // have socket leave room. NOTE: Might not behave as expected if the `.leave` is actually async (it's unclear in docs but can return a promise)
-    socketLeaveRoom(socket, roomId);
-    // once socket left, check if any other sockets in the room. if this was only socket connected, stillInRoom will be false now.
-    const stillInRoom = await hasSocketsInRoom(io, userId, roomId);
-
-    if (!stillInRoom) {
-      await leaveRoom(userId, roomId);
-    }
-  }
-
   function onPlayerDataChange(room: GameRoom) {
     socket
       .to(room.roomId)
@@ -165,7 +147,15 @@ export function roomHandlers(io: ServerType, socket: ServerSocketType) {
 
     // if switching rooms, make sure to leave the previous room first
     if (socket.data.roomId && socket.data.roomId !== roomId) {
-      await thisSocketLeaveRoom();
+      const { roomId: currentRoom, userId } = socket.data;
+      // have socket leave room. NOTE: Might not behave as expected if the `.leave` is actually async (it's unclear in docs but can return a promise)
+      socketLeaveRoom(socket, currentRoom);
+      // once socket left, check if any other sockets in the room. if this was only socket connected, stillInRoom will be false now.
+      const stillInRoom = await hasSocketsInRoom(io, userId, currentRoom);
+
+      if (!stillInRoom) {
+        await leaveRoom(userId, currentRoom);
+      }
     }
 
     // join room class and also the socket room
@@ -236,26 +226,42 @@ export function roomHandlers(io: ServerType, socket: ServerSocketType) {
     callback();
   });
 
-  socket.on("message", (msg) => {
+  socket.on("message", (msg, callback) => {
     if (socket.data.roomId !== msg.roomId) {
-      throw new Error(
-        `Socket received a message for room: ${msg.roomId}, but socket is tied to room: ${socket.data.roomId}`,
-      );
+      callback({
+        message: `Bad roomId: Socket received a message for room: ${msg.roomId}, but socket is tied to room: ${socket.data.roomId}`,
+      });
+      return;
     }
     // should only be receiving msg from sockets user, otherwise something hacky going on
     if (socket.data.userId !== msg.userId) {
-      throw new Error(
-        `Socket received a message from: ${msg.userId}, but socket is tied to userId: ${socket.data.userId}`,
-      );
+      callback({
+        message: `Bad userId: Socket received a message from: ${msg.userId}, but socket is tied to userId: ${socket.data.userId}`,
+      });
+      return;
     }
 
-    const room = GameRoom.findRoom(msg.roomId);
-    if (!room) {
-      throw new Error("Tried messaging a room that didn't exist");
+    try {
+      const room = GameRoom.findRoom(msg.roomId);
+      if (!room) {
+        // not using message here because if the room has been closed, then the socket.data.roomId should have been removed as well.
+        throw new Error("Tried messaging a room that didn't exist");
+      }
+      // add the message to the room store and then rebroadcast to group
+      room.addChatMessage(msg);
+      socket.to(room.roomId).emit("message", msg);
+      setPlayerStatus(room, socket.data.userId);
+      callback();
+    } catch (err) {
+      let message = "Failed to send message";
+      if (typeof err === "string") {
+        message = err;
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      callback({
+        message,
+      });
     }
-    // add the message to the room store and then rebroadcast to group
-    room.addChatMessage(msg);
-    socket.to(room.roomId).emit("message", msg);
-    setPlayerStatus(room, socket.data.userId);
   });
 }

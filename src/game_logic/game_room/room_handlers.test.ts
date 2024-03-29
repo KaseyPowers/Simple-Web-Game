@@ -12,7 +12,7 @@ import {
   testUseSocketIOServer,
 } from "~/game_logic/socket_io/test_utils";
 
-import type { GameRoomDataI, PlayerDataI } from "./room_types";
+import type { ChatDataI, GameRoomDataI, PlayerDataI } from "./room_types";
 import { disconnectOfflineDelay } from "./room_handlers";
 
 // keep timers moving because socket.io seems to break otherwise
@@ -227,6 +227,109 @@ describe("gameRoom socket_handlers", () => {
         expect(sockets1.serverSocket.data.roomId).toBe(roomId);
         // socket 2 should not have joined a room yet
         expect(sockets2.serverSocket.data.roomId).toBeUndefined();
+      });
+    });
+
+    it("socket should leave current room if joining a new one", async () => {
+      const hostSockets = getHostSockets();
+      const { roomId } = getInitialRoomData();
+      // second user will get 2 sockets
+      const secondUser = "test_user_2";
+      const sockets2 = await getBothSockets(secondUser);
+      const thirdUser = "test_user_3";
+      const sockets3 = await getBothSockets(thirdUser);
+
+      sockets2.clientSocket.emit("create_room");
+      const secondRoom = await waitFor<GameRoomDataI>(
+        sockets2.clientSocket,
+        "room_info",
+      );
+
+      expect(secondRoom.roomId).toBeDefined();
+      expect(roomId).not.toBe(secondRoom.roomId);
+      // start with user joining second room
+      return Promise.all([
+        sockets3.clientSocket.emitWithAck("join_room", secondRoom.roomId),
+        waitFor<GameRoomDataI>(sockets3.clientSocket, "room_info"),
+      ])
+        .then(([joinResponse, roomData]) => {
+          // verify joining correctly
+          expect(joinResponse).toBeUndefined();
+          expect(roomData).toEqual(
+            expect.objectContaining({
+              roomId: secondRoom.roomId,
+              players: [secondUser, thirdUser],
+            }),
+          );
+          // join first room now and verify player left the previous room
+          return Promise.all([
+            sockets3.clientSocket.emitWithAck("join_room", roomId),
+            waitFor<string>(sockets3.clientSocket, "leave_room"),
+            waitFor<GameRoomDataI>(sockets3.clientSocket, "room_info"),
+            waitFor<[string, PlayerDataI]>(
+              sockets2.clientSocket,
+              "players_update",
+            ),
+          ]);
+        })
+        .then(
+          ([
+            joinResponse,
+            leaveRoomEvent,
+            roomData,
+            secondRoomPlayersUpdate,
+          ]) => {
+            expect(joinResponse).toBeUndefined();
+            expect(leaveRoomEvent).toBe(secondRoom.roomId);
+            expect(roomData).toEqual(
+              expect.objectContaining({
+                roomId: roomId,
+                players: [hostId, thirdUser],
+              }),
+            );
+            expect(secondRoomPlayersUpdate[0]).toBe(secondRoom.roomId);
+            expect(secondRoomPlayersUpdate[1]).toEqual({
+              players: [secondUser],
+              playersOnline: {
+                [secondUser]: true,
+              },
+            });
+          },
+        );
+    });
+
+    it("should close room if joining a new one as last person in room", async () => {
+      const hostSockets = getHostSockets();
+      const { roomId } = getInitialRoomData();
+      // second user will get 2 sockets
+      const secondUser = "test_user_2";
+      const sockets2 = await getBothSockets(secondUser);
+
+      sockets2.clientSocket.emit("create_room");
+      const secondRoom = await waitFor<GameRoomDataI>(
+        sockets2.clientSocket,
+        "room_info",
+      );
+
+      expect(secondRoom.roomId).toBeDefined();
+      expect(roomId).not.toBe(secondRoom.roomId);
+      // start with user joining second room
+
+      return Promise.all([
+        hostSockets.clientSocket.emitWithAck("join_room", secondRoom.roomId),
+        waitFor<string>(hostSockets.clientSocket, "leave_room"),
+        waitFor<GameRoomDataI>(hostSockets.clientSocket, "room_info"),
+      ]).then(([joinResponse, leaveRoomEvent, roomData]) => {
+        // verify joining correctly
+        expect(joinResponse).toBeUndefined();
+        expect(leaveRoomEvent).toBe(roomId);
+        expect(roomData).toEqual(
+          expect.objectContaining({
+            roomId: secondRoom.roomId,
+            players: [secondUser, hostId],
+          }),
+        );
+        expect(GameRoom.findRoom(roomId)).toBeUndefined();
       });
     });
   });
@@ -628,5 +731,92 @@ describe("gameRoom socket_handlers", () => {
     });
   });
 
-  it.todo("message tests");
+  describe("message event", () => {
+    const { hostId, getHostSockets, getInitialRoomData } =
+      createRoomBeforeEach();
+
+    it("should return undefined if message is valid", async () => {
+      const { roomId } = getInitialRoomData();
+      const hostSockets = getHostSockets();
+      // new socket that isn't in any rooms yet
+
+      const testMsg: ChatDataI = {
+        roomId,
+        userId: hostId,
+        msg: "test message",
+      };
+      const msgResponse = await hostSockets.clientSocket.emitWithAck(
+        "message",
+        testMsg,
+      );
+      expect(msgResponse).toBeUndefined();
+      const room = GameRoom.findRoom(roomId);
+      expect(room?.["chat"]).toEqual([testMsg]);
+    });
+
+    it("should return an error if roomId or userId doesn't match the sending sockets state", async () => {
+      const { roomId } = getInitialRoomData();
+      const hostSockets = getHostSockets();
+      // new socket that isn't in any rooms yet
+      const secondUser = "test_user_2";
+      const newSockets = await getBothSockets(secondUser);
+      newSockets.clientSocket.emit("create_room");
+      const newRoomInfo: GameRoomDataI = await waitFor(
+        newSockets.clientSocket,
+        "room_info",
+      );
+      const newRoomId = newRoomInfo.roomId;
+      // verify new room made and different from initial room
+      expect(newRoomId).toBeDefined();
+      expect(newRoomId).not.toBe(roomId);
+
+      const testMsg: ChatDataI = {
+        roomId: newRoomId,
+        userId: hostId,
+        msg: "test message",
+      };
+
+      const badRoomResponse = await hostSockets.clientSocket.emitWithAck(
+        "message",
+        testMsg,
+      );
+      expect(badRoomResponse?.message).toMatch("Bad roomId");
+
+      const badUserResponse = await newSockets.clientSocket.emitWithAck(
+        "message",
+        testMsg,
+      );
+      expect(badUserResponse?.message).toMatch("Bad userId");
+    });
+
+    it("should emit a message update to all other sockets in the room", async () => {
+      const { roomId } = getInitialRoomData();
+      const hostSockets = getHostSockets();
+      // new socket that isn't in any rooms yet
+      const secondUser = "test_user_2";
+      const newSockets = await getBothSockets(secondUser);
+      const joinResponse = await newSockets.clientSocket.emitWithAck(
+        "join_room",
+        roomId,
+      );
+      expect(joinResponse).toBeUndefined();
+
+      const testMsg: ChatDataI = {
+        roomId,
+        userId: hostId,
+        msg: "test message",
+      };
+
+      return Promise.all([
+        hostSockets.clientSocket.emitWithAck("message", testMsg),
+        waitFor<ChatDataI>(newSockets.clientSocket, "message"),
+      ]).then(([msgResponse, msgEvent]) => {
+        expect(msgResponse).toBeUndefined();
+        expect(msgEvent).toEqual(testMsg);
+
+        const room = GameRoom.findRoom(roomId);
+        expect(room?.["chat"]).toEqual([testMsg]);
+      });
+    });
+  });
 });
