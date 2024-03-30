@@ -8,7 +8,6 @@ export type ErrorAcknowledgementCallback = (
 ) => void;
 
 type eventFnType = (...args: any) => void;
-
 export type WithErrorAck<T extends eventFnType> = (
   ...args: [...Parameters<T>, ErrorAcknowledgementCallback]
 ) => void;
