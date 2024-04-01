@@ -24,7 +24,7 @@ export function getPlayersFromData(data: GameRoomDataI): RoomPlayersI {
     offlinePlayers: [...offlinePlayers].reduce((obj, offlineId) => {
       obj[offlineId] = true;
       return obj;
-    }, {}),
+    }, {} as RoomPlayersI["offlinePlayers"]),
   };
 }
 // will return true if room has any players in it

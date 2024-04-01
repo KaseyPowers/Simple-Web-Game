@@ -96,10 +96,8 @@ export function gameRoomLogic(options: ServerHelperUtilArgs) {
 
   async function closeRoom(roomOrId: string | GameRoomDataI) {
     const roomId = typeof roomOrId === "string" ? roomOrId : roomOrId.roomId;
-
     // delete reference to room from global state
     delete gameRooms[roomId];
-
     await allSocketsLeaveRoom(io, roomId);
   }
 

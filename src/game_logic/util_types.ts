@@ -1,22 +1,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// basic acknowledgement fn type, returning true for valid and a string
-export interface AcknowledgementErrorI {
-  message: string;
+
+// basic acknowledgement fn type, just defining what's needed for common error logic
+export interface AckErrResponse {
+  error: {
+    message: string;
+  };
 }
-export type ErrorAcknowledgementCallback = (
-  response?: AcknowledgementErrorI,
-) => void;
+export type AcknowledgementCallback<
+  ResponseType extends AckErrResponse = AckErrResponse,
+> = (response?: ResponseType) => void;
 
 type eventFnType = (...args: any) => void;
-export type WithErrorAck<T extends eventFnType> = (
-  ...args: [...Parameters<T>, ErrorAcknowledgementCallback]
-) => void;
-export type WithOptionalErrorAck<T extends eventFnType> = (
-  ...args: [...Parameters<T>, ErrorAcknowledgementCallback | undefined]
+
+export type WithAck<T extends eventFnType> = (
+  ...args: [...Parameters<T>, AcknowledgementCallback]
 ) => void;
 
-export type EventsWithErrorAck<T> = {
+export type WithOptionalAck<T extends eventFnType> = (
+  ...args: Parameters<T> | [...Parameters<T>, AcknowledgementCallback]
+) => void;
+
+export type EventsWithAck<T> = {
   [Property in keyof T]: T[Property] extends eventFnType
-    ? WithErrorAck<T[Property]>
+    ? WithAck<T[Property]>
     : never;
 };
