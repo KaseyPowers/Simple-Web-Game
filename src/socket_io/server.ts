@@ -2,9 +2,10 @@ import { Server } from "socket.io";
 
 import type { Server as NetServer } from "net";
 
-import { roomHandlers } from "../game_room/room_handlers";
+import { roomHandlers } from "../game_logic/game_room/room_handlers";
 
 import type { ServerType, ServerSocketType } from "./socket_types";
+import { socketRoomUtils } from "./socket_utils";
 import { socketPath } from "./socket_configs";
 
 export function getSocketServer(netServer: NetServer): ServerType {
@@ -23,11 +24,6 @@ export function getSocketServer(netServer: NetServer): ServerType {
       return next(new Error("Missing UserId"));
     }
     socket.data.userId = userId;
-    /**
-     * NOTE/TODO: all examples show this sort of join in the `io.on("connection"` callback listener, but it makes sense to me to put it here?
-     * Will need to keep an eye on this if it becomes an issue
-     */
-    void socket.join(userId);
     next();
   });
 
@@ -38,6 +34,8 @@ export default function buildServerSocket(netServer: NetServer): ServerType {
   const io = getSocketServer(netServer);
 
   const onConnection = (socket: ServerSocketType) => {
+    // doing this in connection to verify that the room is joined even on reconnection
+    void socketRoomUtils.joinUserIdRoom(socket, socket.data.userId);
     roomHandlers(io, socket);
   };
 

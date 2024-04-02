@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useMemo } from "react";
-import type { ClientSocketType } from "~/game_logic/socket_io/socket_types";
+import type { ClientSocketType } from "~/socket_io/socket_types";
 import type { ChatDataI } from "../room_types";
 
 import type { RoomBaseI } from "./use_room_base";

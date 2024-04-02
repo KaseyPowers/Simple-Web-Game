@@ -1,13 +1,13 @@
-import type { GameRoomDataI } from "../game_room/room";
-import { type GameRoomPlayersI, utils, eventFns } from "../game_room/players";
-import type { ServerSocketOptions } from "../socket_types";
+import type { ServerSocketOptions } from "~/socket_io/socket_util_types";
 
-import { socketRoomUtils } from "../socket_utils";
-import type { OnGameRoomEvent } from "../game_room/event_util_types";
+import type { GameRoomDataI } from "../../room";
+import { type GameRoomPlayersI, utils, eventFns } from "../../players";
+
+import { socketRoomUtils } from "~/socket_io/socket_utils";
 import {
   wrapGameRoomEvent,
   wrapGameRoomEventNoUpdate,
-} from "../game_room/event_utils";
+} from "../../event_utils";
 
 export interface ServerToClientEvents {
   players_update: (roomId: string, playerData: GameRoomPlayersI) => void;

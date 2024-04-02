@@ -1,5 +1,5 @@
 import type { GameRoomDataI } from "./room";
-import type { GameRoomEventDef, OnEventResponse } from "./event_util_types";
+import type { GameRoomEventDef } from "./event_util_types";
 import { createRoomEventFn } from "./event_utils";
 
 export interface GameRoomPlayersDataI {

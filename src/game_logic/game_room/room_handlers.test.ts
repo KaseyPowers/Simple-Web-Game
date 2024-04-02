@@ -10,7 +10,7 @@ import {
   waitFor,
   getEventListener,
   testUseSocketIOServer,
-} from "~/game_logic/socket_io/test_utils";
+} from "~/socket_io/test_utils";
 
 import type { ChatDataI, GameRoomDataI, PlayerDataI } from "./room_types";
 import { disconnectOfflineDelay } from "./room_handlers";

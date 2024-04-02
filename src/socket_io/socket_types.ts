@@ -7,26 +7,20 @@ import type {
 } from "socket.io";
 import type { Socket as ClientSocket } from "socket.io-client";
 
-import type { ServerToClientEvents as PlayerServerToClientEvents } from "./players";
-import type {
-  SocketData as GameRoomSocketData,
-  ServerToClientEvents as GameRoomServerToClientEvents,
-  ClientToServerEvents as GameRoomClientToServerEvents,
-} from "./game_room";
+import type { ServerEventTypes as GameRoomEventTypes } from "~/game_logic/game_logic/game_room/socket/socket_types";
 
-type ServerToClientEvents = PlayerServerToClientEvents &
-  GameRoomServerToClientEvents;
+type ServerToClientEvents = GameRoomEventTypes["ServerToClientEvents"];
 
-type ClientToServerEvents = GameRoomClientToServerEvents;
+type ClientToServerEvents = GameRoomEventTypes["ClientToServerEvents"];
 
 interface InterServerEvents {
   // example fn here until we need a real one
   ping: () => void;
 }
 
-type SocketData = GameRoomSocketData & {
+type SocketData = {
   userId: string;
-};
+} & GameRoomEventTypes["SocketData"];
 
 export type ServerType = SocketIOServer<
   ClientToServerEvents,
@@ -47,11 +41,6 @@ export type ClientSocketType = ClientSocket<
   ServerToClientEvents,
   ClientToServerEvents
 >;
-
-export interface ServerHelperUtilArgs {
-  io: ServerType;
-  socket: ServerSocketType;
-}
 
 export type NextApiResponseServerIO = NextApiResponse & {
   socket: Socket & {

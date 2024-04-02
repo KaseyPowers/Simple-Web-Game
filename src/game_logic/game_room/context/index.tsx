@@ -10,8 +10,8 @@ import React, {
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 
-import type { ClientSocketType } from "~/game_logic/socket_io/socket_types";
-import useSocket from "~/game_logic/socket_io/use_socket";
+import type { ClientSocketType } from "~/socket_io/socket_types";
+import useSocket from "~/socket_io/use_socket";
 
 import type { GameRoomDataI } from "../room_types";
 import useRoomBase from "./use_room_base";

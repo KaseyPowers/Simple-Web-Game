@@ -1,6 +1,6 @@
 import type { NextApiRequest } from "next";
-import type { NextApiResponseServerIO } from "~/game_logic/socket_io/socket_types";
-import getSocketServer from "~/game_logic/socket_io/server";
+import type { NextApiResponseServerIO } from "~/socket_io/socket_types";
+import getSocketServer from "~/socket_io/server";
 
 export default function SocketHandler(
   req: NextApiRequest,

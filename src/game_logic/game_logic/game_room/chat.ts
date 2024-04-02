@@ -27,7 +27,7 @@ const addChatMessage = createRoomEventFn<[newMessage: ChatInputI]>(
     // first validate the roomId from message matches this room
     if (room.roomId !== roomId) {
       throw new Error(
-        `Invalid chat message! Attempted to add a new chat message with roomId ${roomId} to a room with id ${room.roomId}`,
+        `Invalid message! Attempted to add a new chat message with roomId ${roomId} to a room with id ${room.roomId}`,
       );
     }
     // now validate the user is actually in the room

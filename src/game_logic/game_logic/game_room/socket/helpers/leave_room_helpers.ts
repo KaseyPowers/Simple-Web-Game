@@ -1,20 +1,22 @@
-import type { GameRoomDataI, GameRoomI } from "../game_room/room";
-import type { EventsWithAck } from "../../util_types";
+import type {
+  EventsWithAck,
+  ServerSocketOptions,
+} from "~/socket_io/socket_util_types";
 
 import type {
   ServerSocketType,
   ServerType,
   RemoteSocketType,
-  ServerSocketOptions,
-} from "../socket_types";
+} from "~/socket_io/socket_types";
+
 import {
   socketRoomUtils,
-  getUserSockets,
+  fetchUserSockets,
   hasSocketsInRoom,
-} from "../socket_utils";
+} from "~/socket_io/socket_utils";
 
-import { type RoomOrId } from "../game_room/room_manager";
-import { utils } from "../game_room";
+import { type RoomOrId, utils as managerUtils } from "../../room_manager";
+import { utils as playerUtils } from "../../players";
 
 import type { PlayerHelperTypes } from "./player_helpers";
 
@@ -33,7 +35,7 @@ function socketLeaveRoom(
 // will have all sockets associated with this user leave the room
 async function userIdLeaveRoom(io: ServerType, userId: string, roomId: string) {
   // this depends on new sockets joining a room for their userId
-  const userSockets = await getUserSockets(io, userId);
+  const userSockets = await fetchUserSockets(io, userId);
   for (const socket of userSockets) {
     socketLeaveRoom(socket, roomId);
   }
@@ -72,15 +74,15 @@ export default function getLeaveRoomHelpers(
   // helper to have this socket's user fully leave the room
   async function leaveRoom(input: RoomOrId) {
     // get room, don't worry about validation
-    const roomId = utils.getInputRoomId(input);
+    const roomId = managerUtils.getInputRoomId(input);
     const { userId } = socket.data;
     // check for room, and remove player from room if defined
-    const room = utils.findRoom(roomId);
+    const room = managerUtils.findRoom(roomId);
     if (room) {
       const [newRoom, madeChange] = helpers.removePlayer(room, userId);
       // if room is empty, remove from the store and remove all sockets from room
-      if (madeChange && utils.gameRoomIsEmpty(newRoom)) {
-        utils.removeRoom(newRoom);
+      if (madeChange && playerUtils.gameRoomIsEmpty(newRoom)) {
+        managerUtils.removeRoom(newRoom);
         /**
          * if closing the room, remove this room all sockets
          * NOTE: returning because removing for this userId would be redundant (no users should be found still tied to the room regardless of userId)
@@ -110,7 +112,7 @@ export default function getLeaveRoomHelpers(
   }
   // only have this socket leave the room if it's tied to this socket
   thisSocketLeaveRoom.ifRoom = (input: RoomOrId) => {
-    const inputRoomId = utils.getInputRoomId(input);
+    const inputRoomId = managerUtils.getInputRoomId(input);
     const { roomId } = socket.data;
     if (roomId && roomId === inputRoomId) {
       return thisSocketLeaveRoom();
@@ -119,7 +121,7 @@ export default function getLeaveRoomHelpers(
 
   // only have this socket leave the room if it's not tied to the input room
   thisSocketLeaveRoom.ifNotRoom = (input: RoomOrId) => {
-    const inputRoomId = utils.getInputRoomId(input);
+    const inputRoomId = managerUtils.getInputRoomId(input);
     const { roomId } = socket.data;
     if (roomId && roomId !== inputRoomId) {
       return thisSocketLeaveRoom();

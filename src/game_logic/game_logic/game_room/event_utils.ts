@@ -6,7 +6,7 @@ import type {
   OnEventResponse,
 } from "./event_util_types";
 
-import { updateRoom, utils as managerUtils } from "./room_manager";
+import { updateRoom } from "./room_manager";
 
 export function createRoomEventFn<T extends any[]>(
   fn: GameRoomEventDef<T>,
@@ -27,9 +27,9 @@ export function createRoomEventFn<T extends any[]>(
 }
 
 type RoomFnType = (room: GameRoomDataI) => void;
-type inputRoomFnType = undefined | RoomFnType | RoomFnType[];
+type inputRoomFnType = RoomFnType | RoomFnType[];
 function getChangeFunctions(
-  input: inputRoomFnType,
+  input?: inputRoomFnType,
   withUpdate = true,
 ): RoomFnType[] {
   let output: RoomFnType[] = [];
@@ -62,14 +62,14 @@ function _wrapGameRoomEvent<T extends any[]>(
 // default behavior
 export function wrapGameRoomEvent(
   fn: OnGameRoomEvent,
-  onChangeFn: inputRoomFnType,
+  onChangeFn?: inputRoomFnType,
 ): OnGameRoomEvent {
   const onChangeFunctions = getChangeFunctions(onChangeFn);
   return _wrapGameRoomEvent(fn, onChangeFunctions);
 }
 export function wrapGameRoomEventNoUpdate(
   fn: OnGameRoomEvent,
-  onChangeFn: inputRoomFnType,
+  onChangeFn?: inputRoomFnType,
 ): OnGameRoomEvent {
   const onChangeFunctions = getChangeFunctions(onChangeFn, false);
   return _wrapGameRoomEvent(fn, onChangeFunctions);

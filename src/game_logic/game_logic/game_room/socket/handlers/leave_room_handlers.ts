@@ -1,10 +1,9 @@
-import { utils } from "../game_room";
+import type { ServerSocketOptions } from "~/socket_io/socket_util_types";
+import { eventErrorHandler, hasSocketsInRoom } from "~/socket_io/socket_utils";
 
-import type { ServerSocketOptions } from "../socket_types";
-import type { PlayerHelperTypes } from "../helpers/player_helpers";
-import type { LeaveRoomHelperTypes } from "../helpers/leave_room_helpers";
+import type { GameRoomHelpers } from "../helpers";
 
-import { eventErrorHandler, hasSocketsInRoom } from "../socket_utils";
+import { utils as managerUtils } from "../../room_manager";
 
 /** 30 second delay? could change/make variable */
 export const disconnectOfflineDelay = 30 * 1000;
@@ -12,8 +11,7 @@ export const disconnectOfflineDelay = 30 * 1000;
 // will treat creating a room with joining since they overlap so much
 export default function leaveRoomHandler(
   { io, socket }: ServerSocketOptions,
-  helpers: Pick<LeaveRoomHelperTypes, "leaveRoom"> &
-    Pick<PlayerHelperTypes, "setPlayerIsOffline">,
+  helpers: Pick<GameRoomHelpers, "leaveRoom" | "setPlayerIsOffline">,
 ) {
   // event for client indicating that the user wants to leave the room
   socket.on(
@@ -31,7 +29,7 @@ export default function leaveRoomHandler(
   socket.on("disconnect", async () => {
     const { userId, roomId: socketRoomId } = socket.data;
 
-    const room = socketRoomId && utils.findRoom(socketRoomId);
+    const room = socketRoomId && managerUtils.findRoom(socketRoomId);
     // room handlers only care about disconnect if the socket is in a room
     // the following logic only can run if a room is found to modify.
     // if the socket has a roomId defined but it doesn't have a room attatched, we don't need to worry about removing it because the sockets going away

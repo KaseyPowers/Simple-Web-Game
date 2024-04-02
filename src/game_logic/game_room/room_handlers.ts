@@ -1,8 +1,5 @@
 import type { RemoteSocket } from "socket.io";
-import type {
-  ServerType,
-  ServerSocketType,
-} from "~/game_logic/socket_io/socket_types";
+import type { ServerType, ServerSocketType } from "~/socket_io/socket_types";
 import type { RoomServerToClientEvents, RoomSocketData } from "./room_types";
 
 import GameRoom from "./room";

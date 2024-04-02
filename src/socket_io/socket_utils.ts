@@ -1,10 +1,6 @@
 import {} from "socket.io";
-import type {
-  ServerSocketType,
-  ServerType,
-  RemoteSocketType,
-} from "./socket_types";
-import type { AcknowledgementCallback } from "../util_types";
+import type { ServerSocketType, ServerType } from "./socket_types";
+import type { AcknowledgementCallback } from "../game_logic/util_types";
 
 // userId based rooms
 const getUserIdRoom = (userId: string) => `user_${userId}`;
@@ -28,10 +24,12 @@ export const socketRoomUtils = {
   getUserIdRoom,
   userId: getUserIdRoom,
   inUserIdRoom,
+  toUserIdRoom: inUserIdRoom,
   joinUserIdRoom,
   getGameRoom,
   roomId: getGameRoom,
   inGameRoom,
+  toGameRoom: inGameRoom,
   joinGameRoom,
 };
 
@@ -41,7 +39,7 @@ export const socketRoomUtils = {
  */
 
 // grab all sockets for this user
-export function getUserSockets(io: ServerType, userId: string) {
+export function fetchUserSockets(io: ServerType, userId: string) {
   return inUserIdRoom(io, userId).fetchSockets();
 }
 
@@ -50,7 +48,7 @@ export async function hasSocketsInRoom(
   roomId: string,
   userId: string,
 ) {
-  const userSockets = await getUserSockets(io, userId);
+  const userSockets = await fetchUserSockets(io, userId);
   const socketRoomId = socketRoomUtils.getGameRoom(roomId);
   return userSockets.some((socket) => socket.rooms.has(socketRoomId));
 }
@@ -76,7 +74,9 @@ export function eventErrorHandler<T extends any[]>(
       callback = args[args.length - 1] as AcknowledgementCallback;
     }
 
-    const handleError = (err) => {
+    // try/catch err seems to be unknown/any so until I figure out how that's typed I'll just ignore an any type here
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleError = (err: any) => {
       console.log("handling error!", err);
       let message = defaultErrorMsg ?? "Something went wrong!";
       if (typeof err === "string") {

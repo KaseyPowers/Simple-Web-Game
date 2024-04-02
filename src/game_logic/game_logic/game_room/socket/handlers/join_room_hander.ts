@@ -1,13 +1,12 @@
-import type { GameRoomI } from "../game_room/room";
-import type { EventsWithAck } from "../../util_types";
-import type { ServerSocketOptions } from "../socket_types";
+import type {
+  EventsWithAck,
+  ServerSocketOptions,
+} from "~/socket_io/socket_util_types";
 
-import { eventErrorHandler, socketRoomUtils } from "../socket_utils";
-import { utils as roomUtils } from "../game_room/room";
-import {
-  type RoomOrId,
-  utils as managerUtils,
-} from "../game_room/room_manager";
+import { eventErrorHandler, socketRoomUtils } from "~/socket_io/socket_utils";
+
+import { type RoomOrId, utils as managerUtils } from "../../room_manager";
+import { type GameRoomI, utils as roomUtils } from "../../room";
 
 import type { PlayerHelperTypes } from "../helpers/player_helpers";
 import type { LeaveRoomHelperTypes } from "../helpers/leave_room_helpers";

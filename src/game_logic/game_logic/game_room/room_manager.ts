@@ -2,8 +2,7 @@ import cryptoRandomString from "crypto-random-string";
 
 import { type GameRoomDataI, newGameRoomData } from "./room";
 
-import { allGameRooms } from "../shared_data";
-import { OnEventResponse } from "./event_util_types";
+import { allGameRooms } from "../shared_store";
 
 // private-ish: grab the roomId from store
 function findRoomById(roomId: string): GameRoomDataI | undefined {
