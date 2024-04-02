@@ -1,40 +1,48 @@
 import cryptoRandomString from "crypto-random-string";
 
-import { type GameRoomDataI, utils as gameRoomUtils } from "./room";
+import { type GameRoomDataI, newGameRoomData } from "./room";
 
 import { allGameRooms } from "../shared_data";
+import { OnEventResponse } from "./event_util_types";
 
-// this just returns the room found for this ID
-function findRoom(roomId: string): GameRoomDataI | undefined {
+// private-ish: grab the roomId from store
+function findRoomById(roomId: string): GameRoomDataI | undefined {
   return allGameRooms[roomId];
 }
 
+// final step to fully wrapped event/update functions. This will a response object and will update the store if it reports changes
+export function updateRoom(room: GameRoomDataI) {
+  // on changes re-assign the new room to the store
+  allGameRooms[room.roomId] = room;
+}
+
 export type RoomOrId = string | GameRoomDataI;
-/** Util to grab just the roomId */
-function getRoomId(input: RoomOrId): string {
+// get the roomId from input type (assume string input is the roomId)
+function getInputRoomId(input: RoomOrId): string {
   return typeof input === "string" ? input : input.roomId;
 }
-// get's the current state of the room from storage, even if a room object is passed in
-// function getCurrentRoom(input: RoomOrId): GameRoomDataI | undefined {
-//   const roomId = getRoomId(input);
-//   return findRoom(roomId);
-// }
-// NOTE: Part of me wants this to check for the room in the global store too, but leaving that to the validate fn
-function getRoom(input: RoomOrId): GameRoomDataI | undefined {
+// get the room obj, keeping a passed in room or try fetching the string
+function getInputRoom(input: RoomOrId) {
   // tries to find the room if input is a string (assumed roomId). Otherwise keep the room obj
-  return typeof input === "string" ? findRoom(input) : input;
+  return typeof input === "string" ? findRoomById(input) : input;
 }
+// this will get the store's value of a room even if a room object is passed in
+function findRoom(input: RoomOrId) {
+  return findRoomById(getInputRoomId(input));
+}
+
 // NOTE: Should this return the room passed in or grab state room from `getCurrentRoom` instead?
-function getRoomValidated(input: RoomOrId): GameRoomDataI {
+function findRoomValidated(input: RoomOrId): GameRoomDataI {
   if (typeof input === "string") {
-    const room = findRoom(input);
+    // can use the
+    const room = findRoomById(input);
     if (!room) {
       throw new Error(`No room was found for ${input}`);
     }
     return room;
   }
   // input is a room, validate that it's in the store
-  if (!findRoom(input.roomId)) {
+  if (!findRoom(input)) {
     throw new Error(
       `Validating given room, but room's id (${input.roomId}) was not found in the store`,
     );
@@ -53,16 +61,16 @@ function addNewRoom() {
     );
   }
   // roomID is valid so finish and add to store
-  const newRoom = gameRoomUtils.newGameRoomData(roomId);
+  const newRoom = newGameRoomData(roomId);
   allGameRooms[roomId] = newRoom;
   return newRoom;
 }
 
-function removeRoom(input: Parameters<typeof getRoom>[0]) {
+function removeRoom(input: RoomOrId) {
   // just getting the room for custom validation error
-  const roomId = getRoomId(input);
+  const roomId = getInputRoomId(input);
   // might want to make validation optional if there are common race condtitions
-  const room = findRoom(roomId);
+  const room = findRoomById(roomId);
   if (!room) {
     throw new Error(
       `Attempting to remove room ${roomId} but it isn't found in the store`,
@@ -72,11 +80,14 @@ function removeRoom(input: Parameters<typeof getRoom>[0]) {
 }
 
 export const utils = {
+  // input parsers
+  getInputRoomId,
+  getInputRoom,
+  // fetch from store
+  // findRoomById,
   findRoom,
-  getRoomId,
-  // getCurrentRoom,
-  getRoom,
-  getRoomValidated,
+  findRoomValidated,
+  // modify store
   addNewRoom,
   removeRoom,
 } as const;

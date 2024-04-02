@@ -7,18 +7,24 @@ import type {
 } from "socket.io";
 import type { Socket as ClientSocket } from "socket.io-client";
 
-import type { ServerToClientEvents as PlayerServerToClientEvents } from "./helpers/player_helpers";
+import type { ServerToClientEvents as PlayerServerToClientEventTypes } from "./helpers/player_helpers";
+import type { ServerEventTypes as LeaveRoomHelperEventTypes } from "./helpers/leave_room_helpers";
 import type { ServerEventTypes as JoinRoomEventTypes } from "./handlers/join_room_hander";
+import type { ServerEventTypes as ChatEventTypes } from "./handlers/chat_handler";
 // import type {
 //   SocketData as GameRoomSocketData,
 //   ServerToClientEvents as GameRoomServerToClientEvents,
 //   ClientToServerEvents as GameRoomClientToServerEvents,
 // } from "./game_room";
 
-type ServerToClientEvents = PlayerServerToClientEvents &
-  JoinRoomEventTypes["ServerToClientEvents"];
+type ServerToClientEvents = PlayerServerToClientEventTypes &
+  JoinRoomEventTypes["ServerToClientEvents"] &
+  LeaveRoomHelperEventTypes["ServerToClientEvents"] &
+  ChatEventTypes["ServerToClientEvents"];
 
-type ClientToServerEvents = JoinRoomEventTypes["ClientToServerEvents"];
+type ClientToServerEvents = JoinRoomEventTypes["ClientToServerEvents"] &
+  LeaveRoomHelperEventTypes["ClientToServerEvents"] &
+  ChatEventTypes["ClientToServerEvents"];
 
 interface InterServerEvents {
   // example fn here until we need a real one

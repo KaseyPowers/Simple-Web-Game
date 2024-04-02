@@ -4,10 +4,9 @@ import type {
   GameRoomEventDef,
   OnGameRoomEvent,
   OnEventResponse,
-  OnRoomStoreEvent,
 } from "./event_util_types";
 
-import { utils as managerUtils } from "./room_manager";
+import { updateRoom, utils as managerUtils } from "./room_manager";
 
 export function createRoomEventFn<T extends any[]>(
   fn: GameRoomEventDef<T>,
@@ -27,11 +26,51 @@ export function createRoomEventFn<T extends any[]>(
   };
 }
 
-export function createStoreEventFn<T extends any[]>(
+type RoomFnType = (room: GameRoomDataI) => void;
+type inputRoomFnType = undefined | RoomFnType | RoomFnType[];
+function getChangeFunctions(
+  input: inputRoomFnType,
+  withUpdate = true,
+): RoomFnType[] {
+  let output: RoomFnType[] = [];
+
+  if (input) {
+    output = Array.isArray(input) ? input : [input];
+  }
+  // add updateFn to the list if withupdate flag defined
+  if (withUpdate && !output.includes(updateRoom)) {
+    output = [updateRoom, ...output];
+  }
+  return output;
+}
+// inner core logic for wrapGameRoomEvent
+function _wrapGameRoomEvent<T extends any[]>(
   fn: OnGameRoomEvent<T>,
-): OnRoomStoreEvent<T> {
-  return (inputRoom, ...args): OnEventResponse => {
-    const room = managerUtils.getRoomValidated(inputRoom);
-    return fn(room, ...args);
+  onChangeFunctions: RoomFnType[],
+): OnGameRoomEvent<T> {
+  return (...args: Parameters<typeof fn>) => {
+    const response = fn(...args);
+    const [room, onChange] = response;
+    if (onChange) {
+      // iterate over array and call each function
+      onChangeFunctions.forEach((changeFn) => changeFn(room));
+    }
+    // return the response just in case
+    return response;
   };
+}
+// default behavior
+export function wrapGameRoomEvent(
+  fn: OnGameRoomEvent,
+  onChangeFn: inputRoomFnType,
+): OnGameRoomEvent {
+  const onChangeFunctions = getChangeFunctions(onChangeFn);
+  return _wrapGameRoomEvent(fn, onChangeFunctions);
+}
+export function wrapGameRoomEventNoUpdate(
+  fn: OnGameRoomEvent,
+  onChangeFn: inputRoomFnType,
+): OnGameRoomEvent {
+  const onChangeFunctions = getChangeFunctions(onChangeFn, false);
+  return _wrapGameRoomEvent(fn, onChangeFunctions);
 }

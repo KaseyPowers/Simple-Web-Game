@@ -1,40 +1,62 @@
-import type { GameRoomDataI, GameRoomI } from "../game_room/room";
-import type { EventsWithAck } from "../../util_types";
+import { utils } from "../game_room";
+
 import type { ServerSocketOptions } from "../socket_types";
+import type { PlayerHelperTypes } from "../helpers/player_helpers";
+import type { LeaveRoomHelperTypes } from "../helpers/leave_room_helpers";
 
-import { eventErrorHandler, socketRooms } from "../socket_utils";
-import { utils as roomUtils } from "../game_room/room";
-import {
-  type RoomOrId,
-  utils as managerUtils,
-} from "../game_room/room_manager";
+import { eventErrorHandler, hasSocketsInRoom } from "../socket_utils";
 
-export interface ServerEventTypes {
-  ServerToClientEvents: {
-    room_info: (data: GameRoomI) => void;
-  };
-  ClientToServerEvents: EventsWithAck<{
-    create_room: () => void;
-    join_room: (roomId: string) => void;
-  }>;
-  SocketData: {
-    roomId?: string;
-  };
-}
+/** 30 second delay? could change/make variable */
+export const disconnectOfflineDelay = 30 * 1000;
+
 // will treat creating a room with joining since they overlap so much
 export default function leaveRoomHandler(
-  { socket }: ServerSocketOptions,
-  helpers: {
-    // helper function to call and potentially leave room if socket is in that room
-    // thisSocketLeaveRoom: (roomId: string) => Promise<void>;
-    addPlayer: (room: GameRoomDataI, playerId: string) => void;
-  },
+  { io, socket }: ServerSocketOptions,
+  helpers: Pick<LeaveRoomHelperTypes, "leaveRoom"> &
+    Pick<PlayerHelperTypes, "setPlayerIsOffline">,
 ) {
-  async function thisSocketLeaveRoom(roomId: string) {
-    return Promise.resolve();
-  }
+  // event for client indicating that the user wants to leave the room
+  socket.on(
+    "leave_room",
+    eventErrorHandler(async (roomId) => {
+      if (socket.data.roomId !== roomId) {
+        throw new Error(
+          `Socket couldn't leave that room. Tried to leave room: ${roomId}, but socket is ${socket.data.roomId ? `tied to room: ${socket.data.roomId}` : "not in a room"}`,
+        );
+      }
+      await helpers.leaveRoom(roomId);
+    }),
+  );
+  // disconnect listener specifically for gameRoom leaving and offline status logic
+  socket.on("disconnect", async () => {
+    const { userId, roomId: socketRoomId } = socket.data;
 
-  return {
-    thisSocketLeaveRoom,
-  };
+    const room = socketRoomId && utils.findRoom(socketRoomId);
+    // room handlers only care about disconnect if the socket is in a room
+    // the following logic only can run if a room is found to modify.
+    // if the socket has a roomId defined but it doesn't have a room attatched, we don't need to worry about removing it because the sockets going away
+    if (!room) {
+      return;
+    }
+    const { roomId } = room;
+    // at this point the current socket should have been auto-removed from the socket-rooms automatically, so this will only return true if userId has other open sockets in the room
+    const stillInRoom = await hasSocketsInRoom(io, userId, roomId);
+    // if no longer in the room, set to offline while waiting for reconnect/new connection
+    if (!stillInRoom) {
+      // set that the player is offline
+      helpers.setPlayerIsOffline(room, userId, true);
+
+      async function afterDelay() {
+        // check if the userId has a new socket attatched to the room after the delay
+        const isBackInRoom = await hasSocketsInRoom(io, userId, roomId);
+        // if there are still no sockets connected, leave the room completely
+        if (!isBackInRoom) {
+          await helpers.leaveRoom(roomId);
+        }
+        // NOTE: could call to make sure player is back online here, but will assume it's updated by other socket joining
+      }
+      // use timeout to delay the check function. (split like this to try finding a clean pattern for the async fn in setTimeout)
+      setTimeout(() => void afterDelay(), disconnectOfflineDelay);
+    }
+  });
 }

@@ -31,11 +31,3 @@ export type OnGameRoomEvent<T extends any[] = any[]> = (
   current: GameRoomDataI | OnEventResponse,
   ...args: T
 ) => OnEventResponse;
-
-/** Will not allow the EventResponse type as an input for these, to make it clear they shouldn't be chained
- * If we did allow chaining of these, would result in a lot of extra calls to the validation logic. So best avoid that right?
- */
-export type OnRoomStoreEvent<T extends any[] = any[]> = (
-  current: string | GameRoomDataI,
-  ...args: T
-) => OnEventResponse;

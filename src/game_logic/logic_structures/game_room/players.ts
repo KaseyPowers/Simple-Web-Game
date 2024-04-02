@@ -1,5 +1,5 @@
 import type { GameRoomDataI } from "./room";
-import type { OnEventResponse } from "./event_util_types";
+import type { GameRoomEventDef, OnEventResponse } from "./event_util_types";
 import { createRoomEventFn } from "./event_utils";
 
 export interface GameRoomPlayersDataI {
@@ -59,38 +59,41 @@ export const utils = {
   validatePlayerInRoom,
 } as const;
 
-const setPlayerIsOffline = createRoomEventFn<
-  [playerId: string, isOffline: boolean | undefined]
->((room, playerId, isOffline = false) => {
-  // throw error if player is not in this room
-  validatePlayerInRoom(room, playerId);
+const setPlayerIsOffline = createRoomEventFn(
+  (room, playerId: string, isOffline = false) => {
+    // throw error if player is not in this room
+    validatePlayerInRoom(room, playerId);
 
-  // check if the new status is different from current one
-  if (room.offlinePlayers.has(playerId) !== isOffline) {
-    // copy the offline players before modifying
-    const newOfflinePlayers = new Set([...room.offlinePlayers]);
-    if (isOffline) {
-      newOfflinePlayers.add(playerId);
-    } else {
-      newOfflinePlayers.delete(playerId);
+    // check if the new status is different from current one
+    if (room.offlinePlayers.has(playerId) !== isOffline) {
+      // copy the offline players before modifying
+      const newOfflinePlayers = new Set([...room.offlinePlayers]);
+      if (isOffline) {
+        newOfflinePlayers.add(playerId);
+      } else {
+        newOfflinePlayers.delete(playerId);
+      }
+      return [
+        {
+          ...room,
+          offlinePlayers: newOfflinePlayers,
+        },
+        true,
+      ];
     }
-    return [
-      {
-        ...room,
-        offlinePlayers: newOfflinePlayers,
-      },
-      true,
-    ];
-  }
 
-  return [room, false];
+    return [room, false];
+  },
+);
+// simple wrapper to call whenever a player does something, making sure they are not offline
+const onPlayerAction = createRoomEventFn((room, playerId: string) => {
+  return setPlayerIsOffline(room, playerId, false);
 });
 
-const addPlayer = createRoomEventFn<[string]>((room, playerId) => {
-  let output: OnEventResponse = [room, false];
+const _addPlayer: GameRoomEventDef<[playerId: string]> = (room, playerId) => {
   if (!isPlayerInRoom(room, playerId)) {
     // copy room and create new players array with new player added
-    output = [
+    return [
       {
         ...room,
         players: [...room.players, playerId],
@@ -98,11 +101,16 @@ const addPlayer = createRoomEventFn<[string]>((room, playerId) => {
       true,
     ];
   }
+  return [room, false];
+};
+
+const addPlayer = createRoomEventFn((room, playerId: string) => {
+  const output = _addPlayer(room, playerId);
   // chain/add step to make sure the player is online, regardless of if they were actually added
-  return setPlayerIsOffline(output, playerId, false);
+  return onPlayerAction(output, playerId);
 });
 
-const removePlayer = createRoomEventFn<[string]>((room, playerId) => {
+const removePlayer = createRoomEventFn((room, playerId: string) => {
   let newPlayers: false | Partial<GameRoomPlayersDataI> = false;
 
   // if player is in room, start changes to remove it
@@ -144,6 +152,7 @@ const removePlayer = createRoomEventFn<[string]>((room, playerId) => {
 
 export const eventFns = {
   setPlayerIsOffline,
+  onPlayerAction,
   addPlayer,
   removePlayer,
 } as const;
