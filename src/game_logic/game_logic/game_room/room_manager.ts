@@ -1,6 +1,6 @@
 import cryptoRandomString from "crypto-random-string";
 
-import { type GameRoomDataI, newGameRoomData } from "./room";
+import { type GameRoomDataI, newGameRoomData } from "./core/room";
 
 import { allGameRooms } from "../shared_store";
 

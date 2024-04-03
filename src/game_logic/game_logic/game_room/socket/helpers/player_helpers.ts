@@ -1,45 +1,42 @@
-import type { ServerSocketOptions } from "~/socket_io/socket_util_types";
+import type { Mutable } from "~/utils/types";
+import type { ServerHelperOptions } from "~/socket_io/socket_util_types";
 
-import type { GameRoomDataI } from "../../room";
-import { type GameRoomPlayersI, utils, eventFns } from "../../players";
+import socketRoomUtils from "~/socket_io/room_utils";
 
-import { socketRoomUtils } from "~/socket_io/socket_utils";
+import type { GameRoomDataI } from "../../core/room";
 import {
-  wrapGameRoomEvent,
-  wrapGameRoomEventNoUpdate,
-} from "../../event_utils";
+  type GameRoomPlayersI,
+  updaters as playerUpdaters,
+} from "../../core/players";
+import { gameRoomUtils } from "../../core";
+import { wrapStoreUpdater } from "../../manager/create_updater";
+import { storeUpdaters } from "../../manager";
 
 export interface ServerToClientEvents {
   players_update: (roomId: string, playerData: GameRoomPlayersI) => void;
 }
+type playerUpdaterKeysType = keyof typeof playerUpdaters;
+export type PlayerHelperTypes = Pick<
+  typeof storeUpdaters,
+  playerUpdaterKeysType
+>;
+const playerUpdaterKeys = Object.keys(
+  playerUpdaters,
+) as playerUpdaterKeysType[];
 
-type eventFnsKeys = keyof typeof eventFns;
-type eventFnType = (typeof eventFns)[eventFnsKeys];
-
-export default function getPlayerHelpers({ socket }: ServerSocketOptions) {
+export default function getPlayerHelpers({ socket }: ServerHelperOptions) {
   function emitPlayerData(room: GameRoomDataI) {
     socketRoomUtils
       .inGameRoom(socket, room.roomId)
-      .emit("players_update", room.roomId, utils.getPlayersFromData(room));
+      .emit(
+        "players_update",
+        room.roomId,
+        gameRoomUtils.getPlayersFromData(room),
+      );
   }
 
-  // Tried using fromEntries as a way to build this with less (TS) issues than the commented out code above
-  // return a copy of the eventFns with a copy where each event has it's logic wrapped by the logic above
-  const eventKeys = Object.keys(eventFns) as eventFnsKeys[];
-  const copyEvents = Object.fromEntries(
-    eventKeys.map<[eventFnsKeys, eventFnType]>((key) => {
-      return [key, wrapGameRoomEvent(eventFns[key], emitPlayerData)];
-    }),
-  ) as typeof eventFns;
-
-  return {
-    ...copyEvents,
-    // another copy of existing fn that explicitly doesn't update the room
-    onPlayerActionNoUpdate: wrapGameRoomEventNoUpdate(
-      eventFns.onPlayerAction,
-      emitPlayerData,
-    ),
-  } as const;
+  return playerUpdaterKeys.reduce((output, key) => {
+    output[key] = wrapStoreUpdater(storeUpdaters[key], emitPlayerData);
+    return output;
+  }, {} as Mutable<PlayerHelperTypes>) as PlayerHelperTypes;
 }
-
-export type PlayerHelperTypes = ReturnType<typeof getPlayerHelpers>;

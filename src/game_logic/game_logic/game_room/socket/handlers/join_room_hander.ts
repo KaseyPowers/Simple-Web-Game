@@ -1,12 +1,13 @@
 import type {
   EventsWithAck,
-  ServerSocketOptions,
+  ServerHelperOptions,
 } from "~/socket_io/socket_util_types";
 
-import { eventErrorHandler, socketRoomUtils } from "~/socket_io/socket_utils";
+import socketRoomUtils from "~/socket_io/room_utils";
+import { eventErrorHandler } from "~/socket_io/socket_utils";
 
 import { type RoomOrId, utils as managerUtils } from "../../room_manager";
-import { type GameRoomI, utils as roomUtils } from "../../room";
+import { type GameRoomI, utils as roomUtils } from "../../core/room";
 
 import type { PlayerHelperTypes } from "../helpers/player_helpers";
 import type { LeaveRoomHelperTypes } from "../helpers/leave_room_helpers";
@@ -25,7 +26,7 @@ export interface ServerEventTypes {
 }
 // will treat creating a room with joining since they overlap so much
 export default function joinRoomHandler(
-  { socket }: ServerSocketOptions,
+  { socket }: ServerHelperOptions,
   // adding pick to only grab what we need
   helpers: Pick<PlayerHelperTypes, "addPlayer"> &
     Pick<LeaveRoomHelperTypes, "thisSocketLeaveRoom">,

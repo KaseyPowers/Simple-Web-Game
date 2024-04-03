@@ -1,8 +1,7 @@
-import type { ServerSocketOptions } from "~/socket_io/socket_util_types";
+import type { ServerHelperOptions } from "~/socket_io/socket_util_types";
 import { eventErrorHandler, hasSocketsInRoom } from "~/socket_io/socket_utils";
 
 import type { GameRoomHelpers } from "../helpers";
-
 import { utils as managerUtils } from "../../room_manager";
 
 /** 30 second delay? could change/make variable */
@@ -10,7 +9,7 @@ export const disconnectOfflineDelay = 30 * 1000;
 
 // will treat creating a room with joining since they overlap so much
 export default function leaveRoomHandler(
-  { io, socket }: ServerSocketOptions,
+  { io, socket }: ServerHelperOptions,
   helpers: Pick<GameRoomHelpers, "leaveRoom" | "setPlayerIsOffline">,
 ) {
   // event for client indicating that the user wants to leave the room

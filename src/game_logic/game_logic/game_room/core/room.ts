@@ -1,6 +1,6 @@
 import type { GameRoomChatType } from "./chat";
 import type { GameRoomPlayersDataI, GameRoomPlayersI } from "./players";
-import { utils as playerUtils } from "./players";
+import { newPlayersData, getPlayersFromData } from "./players";
 
 // base values that will be garunteed for data/derived states
 interface GameRoomBaseI {
@@ -19,7 +19,7 @@ export function newGameRoomData(roomId: string): GameRoomDataI {
     roomId,
     // chat is simple enough to just define here
     chat: [],
-    ...playerUtils.newPlayersData(),
+    ...newPlayersData(),
   };
 }
 
@@ -29,7 +29,7 @@ const getGameRoomFromData: (room: GameRoomDataI) => GameRoomI = (room) => {
     roomId,
     // chat doesn't change from raw data
     chat,
-    ...playerUtils.getPlayersFromData(room),
+    ...getPlayersFromData(room),
   };
 };
 

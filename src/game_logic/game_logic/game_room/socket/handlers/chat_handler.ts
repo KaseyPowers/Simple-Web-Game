@@ -1,17 +1,13 @@
 import type {
   EventsWithAck,
-  ServerSocketOptions,
+  ServerHelperOptions,
 } from "~/socket_io/socket_util_types";
+import { eventErrorHandler } from "~/socket_io/socket_utils";
+import socketRoomUtils from "~/socket_io/room_utils";
 
-import { eventErrorHandler, socketRoomUtils } from "~/socket_io/socket_utils";
-
-import { utils as managerUtils } from "../../room_manager";
-
-import { createRoomEventFn, wrapGameRoomEvent } from "../../event_utils";
-import { type ChatInputI, eventFns } from "../../chat";
-
+import { type ChatInputI } from "../../core/chat";
 import type { PlayerHelperTypes } from "../helpers/player_helpers";
-import type { OnEventResponse } from "../../event_util_types";
+import { storeUpdaters } from "../../manager";
 
 interface SharedEvents {
   /** Message works both ways, from sender and then to propogate to the rest of the room */
@@ -24,25 +20,10 @@ export interface ServerEventTypes {
 
 // will treat creating a room with joining since they overlap so much
 export default function joinRoomHandler(
-  { socket }: ServerSocketOptions,
+  { socket }: ServerHelperOptions,
   // adding pick to only grab what we need
-  helpers: Pick<PlayerHelperTypes, "onPlayerActionNoUpdate">,
+  helpers: Pick<PlayerHelperTypes, "onPlayerAction">,
 ) {
-  // create a room Event fn that adds the chat message + emit event + make sure user is online
-  const addChatWrapper = wrapGameRoomEvent(
-    createRoomEventFn((room, inputMsg: ChatInputI) => {
-      let output: OnEventResponse = [room, false];
-      output = eventFns.addChatMessage(output, inputMsg);
-      // emit the message event back to the gameRoom (after addChatMessage would validate any issues)
-      socketRoomUtils
-        .toGameRoom(socket, inputMsg.roomId)
-        .emit("message", inputMsg);
-      // wrapped function that will emit the right update event but not update the store yet
-      output = helpers.onPlayerActionNoUpdate(output, inputMsg.userId);
-      return output;
-    }),
-  );
-
   socket.on(
     "message",
     eventErrorHandler((inputMsg) => {
@@ -56,9 +37,12 @@ export default function joinRoomHandler(
           `Invalid message! Socket received a message from: ${inputMsg.userId}, but socket is tied to userId: ${socket.data.userId}`,
         );
       }
-      const room = managerUtils.findRoomValidated(inputMsg.roomId);
-      // call wrapped event handler
-      addChatWrapper(room, inputMsg);
+      const [room] = storeUpdaters.addChatMessage(inputMsg.roomId, inputMsg);
+      socketRoomUtils
+        .toGameRoom(socket, inputMsg.roomId)
+        .emit("message", inputMsg);
+      // calling without the full response from chat message, since that will always trigger a change+emit
+      helpers.onPlayerAction(room, inputMsg.userId);
     }),
   );
 }

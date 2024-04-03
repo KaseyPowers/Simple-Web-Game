@@ -1,6 +1,6 @@
 import type {
   EventsWithAck,
-  ServerSocketOptions,
+  ServerHelperOptions,
 } from "~/socket_io/socket_util_types";
 
 import type {
@@ -9,14 +9,11 @@ import type {
   RemoteSocketType,
 } from "~/socket_io/socket_types";
 
-import {
-  socketRoomUtils,
-  fetchUserSockets,
-  hasSocketsInRoom,
-} from "~/socket_io/socket_utils";
+import socketRoomUtils from "~/socket_io/room_utils";
+import { fetchUserSockets, hasSocketsInRoom } from "~/socket_io/socket_utils";
 
 import { type RoomOrId, utils as managerUtils } from "../../room_manager";
-import { utils as playerUtils } from "../../players";
+import { utils as playerUtils } from "../../core/players";
 
 import type { PlayerHelperTypes } from "./player_helpers";
 
@@ -68,7 +65,7 @@ export interface ServerEventTypes {
 }
 // will treat creating a room with joining since they overlap so much
 export default function getLeaveRoomHelpers(
-  { io, socket }: ServerSocketOptions,
+  { io, socket }: ServerHelperOptions,
   helpers: Pick<PlayerHelperTypes, "removePlayer">,
 ) {
   // helper to have this socket's user fully leave the room

@@ -28,7 +28,7 @@ export type EventsWithAck<T> = {
     : never;
 };
 
-export interface ServerSocketOptions {
+export interface ServerHelperOptions {
   io: ServerType;
   socket: ServerSocketType;
 }
