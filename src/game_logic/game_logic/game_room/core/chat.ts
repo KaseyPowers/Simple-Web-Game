@@ -1,8 +1,8 @@
-import { createUpdater } from "./utils";
+import { createUpdater } from "./updater";
 
 import { utils as playerUtils } from "./players";
 
-interface ChatDataI {
+export interface ChatDataI {
   userId: string;
   msg: string;
 }

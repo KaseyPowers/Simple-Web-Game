@@ -1,6 +1,6 @@
 import type { GameRoomDataI } from "./room";
-import type { UpdaterDef } from "./util_types";
-import { createUpdater } from "./utils";
+import type { UpdaterDef } from "./updater_types";
+import { createUpdater } from "./updater";
 
 /**
  * Notes on OfflinePlayers/general player status in room

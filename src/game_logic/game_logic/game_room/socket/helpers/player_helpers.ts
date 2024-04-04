@@ -9,7 +9,7 @@ import {
   updaters as playerUpdaters,
 } from "../../core/players";
 import { gameRoomUtils } from "../../core";
-import { wrapStoreUpdater } from "../../manager/create_updater";
+import { wrapStoreUpdater } from "../../manager/store_updater";
 import { storeUpdaters } from "../../manager";
 
 export interface ServerToClientEvents {

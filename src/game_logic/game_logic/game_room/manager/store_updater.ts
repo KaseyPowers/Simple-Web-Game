@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { GameRoomDataI } from "../core/room";
+import type { GameRoomDataI } from "../core/room";
 import type {
   Updater,
   UpdaterInner,
   UpdaterResponse,
-} from "../core/util_types";
+  GetUpdaterArgs,
+} from "../core/updater_types";
 import { type RoomOrId, getRoom, setRoom } from "./utils";
 
 type StoreUpdaterInput = RoomOrId | UpdaterResponse;
@@ -28,23 +29,9 @@ export interface StoreUpdater<T extends any[] = any[]>
 type StoreUpdaterArgs<Type extends StoreUpdater> =
   Type extends StoreUpdater<infer T> ? T : never;
 
-// type OtherConvert<T extends any[]> = StoreUpdater<T>;
-
-// type OtherMapConverter<Type extends Record<string, Updater>> = {
-//   [Property in keyof Type]: OtherConverT<Type[Property]>;
-// };
-
-type UpdaterArgs<Type extends Updater> =
-  Type extends Updater<infer T> ? T : never;
-
-type ConvertUpdaterType<Type extends Updater> = StoreUpdater<UpdaterArgs<Type>>;
-
-// export type MapConvertUpdate2<Type extends Record<string, Updater>> = {
-//   [Property in keyof Type]: ConvertUpdaterType2<Type[Property]>;
-// };
-
-// type ConvertUpdaterType<Type extends Updater> =
-//   Type extends Updater<infer T> ? StoreUpdater<T> : never;
+type ConvertUpdaterType<Type extends Updater> = StoreUpdater<
+  GetUpdaterArgs<Type>
+>;
 
 export type MapConvertUpdate<Type extends Record<string, Updater>> = {
   [Property in keyof Type]: ConvertUpdaterType<Type[Property]>;
@@ -102,7 +89,7 @@ function createStoreUpdaterFromInners<T extends any[]>(
 function createStoreUpdater<Type extends Updater>(
   updater: Type,
 ): ConvertUpdaterType<Type> {
-  const storeInnerFn: UpdaterInner<UpdaterArgs<Type>> = (
+  const storeInnerFn: UpdaterInner<GetUpdaterArgs<Type>> = (
     currentUpdate,
     ...args
   ) => {
@@ -122,7 +109,7 @@ function createStoreUpdater<Type extends Updater>(
     }
     return response;
   };
-  return createStoreUpdaterFromInners<UpdaterArgs<Type>>({
+  return createStoreUpdaterFromInners<GetUpdaterArgs<Type>>({
     inner: storeInnerFn,
     innerNoUpdate: updater.inner,
   });
@@ -161,5 +148,4 @@ export function mapToStoreUpdaters<Type extends Record<string, Updater>>(
     }
     return output;
   }, {} as MapConvertUpdate<Type>);
-  // ) as MapConvertUpdate<Type>;
 }

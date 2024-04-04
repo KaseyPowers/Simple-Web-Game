@@ -11,7 +11,7 @@ export type UpdaterResponse = [GameRoomDataI, boolean];
 export type UpdaterDef<T extends any[] = any[]> = (
   room: GameRoomDataI,
   ...args: T
-) => UpdaterResponse | undefined;
+) => UpdaterResponse | undefined | void;
 
 // Inner function we create for the Updater
 export type UpdaterInner<T extends any[] = any[]> = (
@@ -19,8 +19,9 @@ export type UpdaterInner<T extends any[] = any[]> = (
   ...args: T
 ) => UpdaterResponse;
 // Usable UpdaterFn we create with a utility, will allow for a response object input and merge them as needed
+export type UpdaterFnInput = GameRoomDataI | UpdaterResponse;
 export type UpdaterFn<T extends any[] = any[]> = (
-  current: GameRoomDataI | UpdaterResponse,
+  current: UpdaterFnInput,
   ...args: T
 ) => UpdaterResponse;
 
@@ -32,4 +33,12 @@ export interface Updater<T extends any[] = any[]> extends UpdaterFn<T> {
   inner: UpdaterInner<T>;
 }
 
+// export interface Updater<T extends any[] = any[]> {
+//   (current: GameRoomDataI | UpdaterResponse, ...args: T): UpdaterResponse;
+//   inner: UpdaterInner<T>;
+// }
+
 // export type Updater<T extends any[]> = UpdaterFn<T> & {inner: UpdaterInner<T>};
+
+export type GetUpdaterArgs<Type extends Updater> =
+  Type extends Updater<infer T> ? T : never;

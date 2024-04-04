@@ -1,5 +1,5 @@
 import { gameRoomUpdaters } from "../core";
-import { mapToStoreUpdaters } from "./create_updater";
+import { mapToStoreUpdaters } from "./store_updater";
 export * as managerUtils from "./utils";
 
 // convert the gameRoomUpdaters to ones with store updating
