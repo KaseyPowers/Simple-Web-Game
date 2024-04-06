@@ -23,7 +23,7 @@ const testPlayerId = "test_player_id";
 const testRoom = newGameRoomData(testRoomId);
 
 describe("core chat updaters", () => {
-  let mockPlayerValidator;
+  let mockPlayerValidator: jest.Mocked<typeof playerUtils.validatePlayerInRoom>;
   beforeEach(() => {
     mockPlayerValidator = jest.mocked(playerUtils.validatePlayerInRoom);
   });

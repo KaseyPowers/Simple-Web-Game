@@ -1,6 +1,6 @@
 import type { GameRoomDataI } from "./room";
-import type { UpdaterDef } from "./updater_types";
 import { createUpdater } from "./updater";
+import type { UpdaterDef } from "../../updater_types";
 
 /**
  * Notes on OfflinePlayers/general player status in room
@@ -62,8 +62,9 @@ export const utils = {
   validatePlayerInRoom,
 } as const;
 
-const setPlayerOfflineDef: UpdaterDef<
-  [playerId: string, isOffline?: boolean]
+const setPlayerIsOfflineDef: UpdaterDef<
+  GameRoomDataI,
+  [playerId: string, isOffilne?: boolean]
 > = (room, playerId, isOffline = false) => {
   // throw error if player is not in this room
   validatePlayerInRoom(room, playerId);
@@ -86,16 +87,14 @@ const setPlayerOfflineDef: UpdaterDef<
     ];
   }
 };
-
-const setPlayerIsOffline = createUpdater(setPlayerOfflineDef);
+const setPlayerIsOffline = createUpdater(setPlayerIsOfflineDef);
 
 // simple wrapper to call whenever a player does something, making sure they are not offline
 const onPlayerAction = createUpdater((room, playerId: string) =>
-  setPlayerIsOffline(room, playerId, false),
+  setPlayerIsOfflineDef(room, playerId, false),
 );
 
-// split this logic out into an updaterFn to handle setting up the response logic for us, then we can chain easily
-const justAddPlayer = createUpdater((room, playerId: string) => {
+const addPlayerDef: UpdaterDef<GameRoomDataI> = (room, playerId: string) => {
   if (!isPlayerInRoom(room, playerId)) {
     // copy room and create new players array with new player added
     return [
@@ -106,12 +105,13 @@ const justAddPlayer = createUpdater((room, playerId: string) => {
       true,
     ];
   }
-});
-
+};
+// chaining like this only works here because the second updater is also for players, this would cause issues for something like chat udpaters where it might miss player-specific wrapping logic
 const addPlayer = createUpdater((room, playerId: string) => {
-  const output = justAddPlayer(room, playerId);
+  const output = addPlayerDef(room, playerId);
+  // using ?? room to chain when addPlayerDef returns undefined for no changes.
   // chain/add step to make sure the player is online, regardless of if they were actually added
-  return onPlayerAction(output, playerId);
+  return onPlayerAction(output ?? room, playerId);
 });
 
 const removePlayer = createUpdater((room, playerId: string) => {

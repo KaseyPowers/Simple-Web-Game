@@ -69,7 +69,7 @@ export function inputRoom(input: RoomOrId) {
 }
 
 // will get the room instance from the store even if a gameRoom obj passed in that doesn't match the store's current value
-export function getStoreRoom(input: RoomOrId) {
+export function inputStoreRoom(input: RoomOrId) {
   // just get the id from input, and try getting store value using that
   return getRoomById(inputRoomId(input));
 }
@@ -91,7 +91,7 @@ export function getRoom(input: RoomOrId): GameRoomDataI {
     return room;
   }
   // input is a room, validate that it's in the store
-  if (!getStoreRoom(input)) {
+  if (!inputStoreRoom(input)) {
     throw new Error(
       `Validating input room, but room's id (${input.roomId}) was not found in the store`,
     );
