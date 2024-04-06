@@ -4,9 +4,8 @@ import type { GameRoomDataI } from "./room";
 import { type RoomOrId, getRoom, setRoom } from "./store_utils";
 import { coreUpdaters } from "./core_udpaters";
 
-type GameRoomStoreInputType = UpdaterFnInput<GameRoomDataI, string>;
-const inputParser: InputParserFn<GameRoomDataI, GameRoomStoreInputType> = (
-  input,
+export const inputParser: InputParserFn<GameRoomDataI, string> = (
+  input: UpdaterFnInput<GameRoomDataI, string>,
 ) => {
   /**
    * use this to grab the room(orId) + hasChanged from input.
@@ -23,7 +22,7 @@ const inputParser: InputParserFn<GameRoomDataI, GameRoomStoreInputType> = (
   return [getRoom(inputRoomOrId), inputChanged];
 };
 
-const { mapExtendUpdaters } = createUpdaterBuilder<GameRoomDataI>({
+const { mapExtendUpdaters } = createUpdaterBuilder<GameRoomDataI, string>({
   inputParser,
   onChangeFns: [
     // this function will be called whenever an updater gets a new room, so we know this is a new room here.

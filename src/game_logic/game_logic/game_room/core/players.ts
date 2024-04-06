@@ -29,9 +29,7 @@ export function newPlayersData(): GameRoomPlayersDataI {
   };
 }
 // getOutputData
-export function getPlayersFromData(
-  room: GameRoomPlayersDataI,
-): GameRoomPlayersI {
+function getPlayersFromData(room: GameRoomPlayersDataI): GameRoomPlayersI {
   const { players, offlinePlayers } = room;
   return {
     players,
@@ -40,14 +38,14 @@ export function getPlayersFromData(
 }
 
 // helper utilities
-function gameRoomIsEmpty(room: GameRoomDataI): boolean {
+function gameRoomIsEmpty(room: GameRoomPlayersDataI): boolean {
   return room.players.length <= 0;
 }
-function isPlayerInRoom(room: GameRoomDataI, playerId: string): boolean {
+function isPlayerInRoom(room: GameRoomPlayersDataI, playerId: string): boolean {
   return room.players.includes(playerId);
 }
 
-function validatePlayerInRoom(room: GameRoomDataI, playerId: string) {
+function validatePlayerInRoom(room: GameRoomPlayersDataI, playerId: string) {
   if (!isPlayerInRoom(room, playerId)) {
     throw new Error(
       `Can't perform action, player (${playerId}) isn't in this GameRoom`,

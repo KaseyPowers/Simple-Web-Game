@@ -31,10 +31,7 @@ export function basicInputParser<Type>(
   return Array.isArray(input) ? input : [input, false];
 }
 
-export function getBuilderObj<
-  Type,
-  OtherInputs extends undefined | any[] = undefined,
->(
+export function getBuilderObj<Type, OtherInputs = undefined>(
   options?: UpdateBuilderOptions<Type, OtherInputs>,
 ): UpdateBuilderObj<Type, OtherInputs> {
   // types here got too complext it seems, so just casting for now
@@ -56,7 +53,7 @@ export function getBuilderObj<
 function updaterFromObj<
   Type = any,
   Args extends any[] = any[],
-  OtherInputs extends undefined | any[] = undefined,
+  OtherInputs = undefined,
 >(
   updaterObj: UpdaterObj<Type, Args, OtherInputs>,
 ): Updater<Type, Args, OtherInputs> {
@@ -66,7 +63,7 @@ function updaterFromObj<
 export function getUpdaterFromBuilder<
   Type = any,
   Args extends any[] = any[],
-  OtherInputs extends undefined | any[] = undefined,
+  OtherInputs = undefined,
 >(
   updaterFn: UpdaterDef<Type, Args>,
   builder: UpdateBuilderObj<Type, OtherInputs>,
@@ -112,7 +109,7 @@ export function getUpdaterFromBuilder<
 function copyUpdaterObj<
   Type = any,
   Args extends any[] = any[],
-  OtherInputs extends undefined | any[] = undefined,
+  OtherInputs = undefined,
 >(
   updater: Updater<Type, Args, OtherInputs>,
 ): UpdaterObj<Type, Args, OtherInputs> {
@@ -130,7 +127,7 @@ function copyUpdaterObj<
 export function copyUpdater<
   Type = any,
   Args extends any[] = any[],
-  OtherInputs extends undefined | any[] = undefined,
+  OtherInputs = undefined,
 >(updater: Updater<Type, Args, OtherInputs>): Updater<Type, Args, OtherInputs> {
   const obj = copyUpdaterObj(updater);
   return updaterFromObj(obj);
@@ -140,7 +137,7 @@ export function copyUpdater<
 export function extendUpdater<
   Type = any,
   Args extends any[] = any[],
-  OtherInputs extends undefined | any[] = undefined,
+  OtherInputs = undefined,
 >(
   updater: Updater<Type, Args, any>,
   options: Partial<UpdateBuilderObj<Type, OtherInputs>>,
@@ -161,7 +158,7 @@ export function extendUpdater<
 export function createUpdater<
   Type = any,
   Args extends any[] = any[],
-  OtherInputs extends undefined | any[] = undefined,
+  OtherInputs = undefined,
 >(
   updaterFn: UpdaterDef<Type, Args>,
   options?: UpdateBuilderOptions<Type, OtherInputs>,
@@ -171,10 +168,9 @@ export function createUpdater<
 }
 
 // making sure options works as undefined in other places, but here we kinda expect it
-export function createUpdaterBuilder<
-  Type,
-  OtherInputs extends undefined | any[] = undefined,
->(options: UpdateBuilderOptions<Type, OtherInputs>) {
+export function createUpdaterBuilder<Type, OtherInputs = undefined>(
+  options?: UpdateBuilderOptions<Type, OtherInputs>,
+) {
   const builder = getBuilderObj<Type, OtherInputs>(options);
 
   function innerCreateUpdater<Args extends any[] = any[]>(
@@ -193,10 +189,13 @@ export function createUpdaterBuilder<
     );
   }
 
-  function mapExtendUpdaters<ToConvert extends Record<string, Updater<Type>>>(
-    updatersObj: ToConvert,
-  ) {
-    return (Object.keys(updatersObj) as (keyof ToConvert)[]).reduce(
+  function mapExtendUpdaters<
+    ToConvert extends Record<string, Updater<Type, any, any>>,
+    KeepKeys extends keyof ToConvert = keyof ToConvert,
+  >(updatersObj: ToConvert, keepKeys?: KeepKeys[]) {
+    return (
+      keepKeys ?? (Object.keys(updatersObj) as (keyof ToConvert)[])
+    ).reduce(
       (output, key) => {
         const updater = updatersObj[key];
         if (updater) {

@@ -15,32 +15,25 @@ export type UpdaterInner<Type, Args extends any[] = any[]> = (
   ...args: Args
 ) => UpdaterResponse<Type>;
 
-export type UpdaterFnInput<
-  Type,
-  OtherInputs extends undefined | any[] = undefined,
-> =
+export type UpdaterFnInput<Type, OtherInputs = undefined> =
   | Type
   | UpdaterResponse<Type>
   | (OtherInputs extends undefined ? never : OtherInputs);
 
-export type InputParserFn<
-  Type,
-  OtherInputs extends undefined | any[] = undefined,
-> = (input: UpdaterFnInput<Type, OtherInputs>) => UpdaterResponse<Type>;
+export type InputParserFn<Type, OtherInputs = undefined> = (
+  input: UpdaterFnInput<Type, OtherInputs>,
+) => UpdaterResponse<Type>;
 
 export type OnChangeFn<Type> = (newValue: Type) => void;
 
-export type UpdateBuilderObj<
-  Type,
-  OtherInputs extends undefined | any[] = undefined,
-> = {
+export type UpdateBuilderObj<Type, OtherInputs = undefined> = {
   readonly inputParser: InputParserFn<Type, OtherInputs>;
   readonly onChangeFns: OnChangeFn<Type>[];
 };
 
 export type UpdateBuilderOptions<
   Type,
-  OtherInputs extends undefined | any[] = undefined,
+  OtherInputs = undefined,
 > = OtherInputs extends undefined
   ? Partial<UpdateBuilderObj<Type, OtherInputs>>
   : PartialExcept<UpdateBuilderObj<Type, OtherInputs>, "inputParser">;
@@ -48,7 +41,7 @@ export type UpdateBuilderOptions<
 export type UpdaterFn<
   Type,
   Args extends any[] = any[],
-  OtherInputs extends undefined | any[] = undefined,
+  OtherInputs = undefined,
 > = (
   input: UpdaterFnInput<Type, OtherInputs>,
   ...args: Args
@@ -57,7 +50,7 @@ export type UpdaterFn<
 export interface UpdaterObj<
   Type,
   Args extends any[] = any[],
-  OtherInputs extends undefined | any[] = undefined,
+  OtherInputs = undefined,
 > extends UpdateBuilderObj<Type, OtherInputs> {
   // inner functions to leave alone
   readonly coreInnerFn: UpdaterInner<Type, Args>;
@@ -69,7 +62,7 @@ export interface UpdaterObj<
 export type Updater<
   Type = any,
   Args extends any[] = any[],
-  OtherInputs extends undefined | any[] = undefined,
+  OtherInputs = undefined,
 > = UpdaterFn<Type, Args, OtherInputs> & UpdaterObj<Type, Args, OtherInputs>;
 
 export type GetUpdaterType<T extends Updater> =
@@ -93,7 +86,7 @@ export type GetUpdaterParameters<T extends Updater> = [
 
 export type ConvertUpdaterType<
   FromUpdater extends Updater = Updater,
-  NewOtherInputs extends undefined | any[] = undefined,
+  NewOtherInputs = undefined,
 > =
   FromUpdater extends Updater<infer Type, infer Args, any>
     ? Updater<Type, Args, NewOtherInputs>
@@ -105,9 +98,10 @@ export type MapToNewUpdater<
     string,
     Updater<Type>
   >,
-  NewOtherInputs extends undefined | any[] = undefined,
+  NewOtherInputs = undefined,
+  KeepKeys extends keyof ToConvert = keyof ToConvert,
 > = {
-  [Property in keyof ToConvert]: ConvertUpdaterType<
+  [Property in KeepKeys]: ConvertUpdaterType<
     ToConvert[Property],
     NewOtherInputs
   >;

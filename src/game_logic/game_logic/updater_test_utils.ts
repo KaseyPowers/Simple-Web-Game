@@ -8,7 +8,7 @@ import { cloneDeep } from "lodash";
 
 // wrapper to verify that the call preserves the readonly aspect of the input room
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function makeUpdaterCall<Type, T extends Updater<Type>>(
+export function makeUpdaterCall<Type, T extends Updater<Type> = Updater<Type>>(
   updater: T,
   ...args: GetUpdaterParameters<T>
 ): UpdaterResponse<Type> {

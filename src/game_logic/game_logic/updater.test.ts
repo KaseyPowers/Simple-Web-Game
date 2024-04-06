@@ -2,15 +2,14 @@
  * @jest-environment node
  */
 import { jest } from "@jest/globals";
-import {
-  type UpdaterResponse,
-  type UpdaterDef,
-  type Updater,
-  type InputParserFn,
-  type UpdaterFnInput,
-  type UpdateBuilderObj,
-  type OnChangeFn,
-  UpdaterInner,
+import type {
+  UpdaterResponse,
+  UpdaterDef,
+  Updater,
+  InputParserFn,
+  UpdaterFnInput,
+  UpdateBuilderObj,
+  OnChangeFn,
 } from "./updater_types";
 import {
   basicInputParser,
@@ -36,18 +35,22 @@ interface TestObjI {
   };
 }
 
-const newTestObj: (mod?: number) => TestObjI = (mod) => ({
-  string: "Hello World" + mod,
-  number: 5 + (mod ?? 0),
-  // don't modify falsy
-  falsyString: "",
-  faslyNumber: 0,
-  array: [1, 2, 5, 0, 10].map((val) => val + (mod ?? 0)),
-  set: new Set(["I'm", "a", "Set", "" + mod].filter(Boolean)),
-  nestedObj: {
-    id: "Call me an egg! cus I'm in a nest" + mod,
-  },
-});
+const newTestObj: (mod?: number) => TestObjI = (mod) => {
+  const modString = typeof mod === "undefined" ? "" : mod + "";
+  const modNumber = mod ?? 0;
+  return {
+    string: "Hello World" + modString,
+    number: 5 + modNumber,
+    // don't modify falsy
+    falsyString: "",
+    faslyNumber: 0,
+    array: [1, 2, 5, 0, 10].map((val) => val + modNumber),
+    set: new Set<string>(["I'm", "a", "Set", modString].filter(Boolean)),
+    nestedObj: {
+      id: "Call me an egg! cus I'm in a nest" + mod,
+    },
+  };
+};
 
 describe("Base Updater logic", () => {
   // might not be used by every test but most of them so might as well define here
@@ -531,13 +534,38 @@ describe("Base Updater logic", () => {
         "extendUpdater",
         "mapExtendUpdaters",
       ] as (keyof ReturnType<typeof createUpdaterBuilder>)[];
-      // since order doesn't matter, wrap each array in a set
-      expect(new Set(Object.keys(updateBuilder))).toEqual(
-        new Set(expectedKeys),
-      );
+
+      expect(Object.keys(updateBuilder)).toBeArrayWith(expectedKeys);
 
       expectedKeys.forEach((key) => {
         expect(typeof updateBuilder[key]).toBe("function");
+      });
+    });
+
+    it("should allow empty or partial builders", () => {
+      const expectedKeys = [
+        "createUpdater",
+        "extendUpdater",
+        "mapExtendUpdaters",
+      ] as (keyof ReturnType<typeof createUpdaterBuilder>)[];
+
+      const updateEmptyBuilder = createUpdaterBuilder();
+
+      // since order doesn't matter, wrap each array in a set
+      expect(Object.keys(updateEmptyBuilder)).toBeArrayWith(expectedKeys);
+
+      expectedKeys.forEach((key) => {
+        expect(typeof updateEmptyBuilder[key]).toBe("function");
+      });
+
+      const updatePartialBuilder = createUpdaterBuilder({
+        inputParser: newParser,
+      });
+
+      expect(Object.keys(updatePartialBuilder)).toBeArrayWith(expectedKeys);
+
+      expectedKeys.forEach((key) => {
+        expect(typeof updatePartialBuilder[key]).toBe("function");
       });
     });
 
@@ -583,7 +611,7 @@ describe("Base Updater logic", () => {
         "onMainAction",
         "secondaryAction",
       ];
-      expect(new Set(objKeys)).toEqual(new Set(Object.keys(updaterObj)));
+      expect(Object.keys(updaterObj)).toBeArrayWith(objKeys);
 
       const updateBuilder = createUpdaterBuilder(firstBuilder);
 
@@ -600,9 +628,7 @@ describe("Base Updater logic", () => {
       const newUpdaterObj = updateBuilder.mapExtendUpdaters(updaterObj);
 
       // make sure object keys are same
-      expect(new Set(Object.keys(newUpdaterObj))).toEqual(
-        new Set(Object.keys(updaterObj)),
-      );
+      expect(Object.keys(newUpdaterObj)).toBeArrayWith(Object.keys(updaterObj));
 
       objKeys.forEach((key) => {
         compareUpdaters(updaterObj[key], newUpdaterObj[key]);
