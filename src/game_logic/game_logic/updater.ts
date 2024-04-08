@@ -11,6 +11,7 @@ import type {
   MapToNewUpdater,
   GetUpdaterArgs,
   ConvertUpdaterType,
+  UpdaterInner,
 } from "./updater_types";
 
 /**
@@ -49,8 +50,8 @@ export function getBuilderObj<Type, OtherInputs = undefined>(
 
   return output;
 }
-
-function updaterFromObj<
+// function to turn obj into final updater
+export function updaterFromObj<
   Type = any,
   Args extends any[] = any[],
   OtherInputs = undefined,
@@ -59,34 +60,33 @@ function updaterFromObj<
 ): Updater<Type, Args, OtherInputs> {
   return Object.assign(updaterObj.update.bind(updaterObj), updaterObj);
 }
-// get the final updater with the builder obj input
-export function getUpdaterFromBuilder<
+// fn to return coreInnerFn
+export function getCoreInnerFn<Type = any, Args extends any[] = any[]>(
+  updaterFn: UpdaterDef<Type, Args>,
+): UpdaterInner<Type, Args> {
+  return (currentUpdate, ...args) => {
+    const [currentVal, currentChanged] = currentUpdate;
+    const nextUpdate = updaterFn(currentVal, ...args);
+    if (!nextUpdate) {
+      return currentUpdate;
+    }
+    const [nextVal, nextChanged] = nextUpdate;
+    if (!nextChanged && currentVal !== nextVal) {
+      throw new Error(
+        "updater function return indicates that no changes occured but returned a new value",
+      );
+    }
+    return [nextVal, nextChanged || currentChanged];
+  };
+}
+
+export function getCommonUpdaterObj<
   Type = any,
   Args extends any[] = any[],
   OtherInputs = undefined,
->(
-  updaterFn: UpdaterDef<Type, Args>,
-  builder: UpdateBuilderObj<Type, OtherInputs>,
-): Updater<Type, Args, OtherInputs> {
-  const { onChangeFns, inputParser } = builder;
-  const outputObj: UpdaterObj<Type, Args, OtherInputs> = {
-    inputParser: inputParser,
-    // make sure to make a copy of the change functions in case the builder is shared
-    onChangeFns: [...onChangeFns],
-    coreInnerFn(currentUpdate, ...args) {
-      const [currentVal, currentChanged] = currentUpdate;
-      const nextUpdate = updaterFn(currentVal, ...args);
-      if (!nextUpdate) {
-        return currentUpdate;
-      }
-      const [nextVal, nextChanged] = nextUpdate;
-      if (!nextChanged && currentVal !== nextVal) {
-        throw new Error(
-          "updater function return indicates that no changes occured but returned a new value",
-        );
-      }
-      return [nextVal, nextChanged || currentChanged];
-    },
+>(): Pick<UpdaterObj<Type, Args, OtherInputs>, "innerFn" | "update"> {
+  // return both functions in a "trust me the rest will be defined" way?
+  return {
     // wrapper for change listeners
     innerFn(inputUpdate, ...args) {
       const nextUpdate = this.coreInnerFn(inputUpdate, ...args);
@@ -102,6 +102,24 @@ export function getUpdaterFromBuilder<
       const inputUpdate = this.inputParser(input);
       return this.innerFn(inputUpdate, ...args);
     },
+  } as UpdaterObj<Type, Args, OtherInputs>;
+}
+// get the final updater with the builder obj input
+export function getUpdaterFromBuilder<
+  Type = any,
+  Args extends any[] = any[],
+  OtherInputs = undefined,
+>(
+  updaterFn: UpdaterDef<Type, Args>,
+  builder: UpdateBuilderObj<Type, OtherInputs>,
+): Updater<Type, Args, OtherInputs> {
+  const { onChangeFns, inputParser } = builder;
+  const outputObj: UpdaterObj<Type, Args, OtherInputs> = {
+    inputParser: inputParser,
+    // make sure to make a copy of the change functions in case the builder is shared
+    onChangeFns: [...onChangeFns],
+    coreInnerFn: getCoreInnerFn<Type, Args>(updaterFn),
+    ...getCommonUpdaterObj<Type, Args, OtherInputs>(),
   };
   return updaterFromObj(outputObj);
 }
@@ -123,7 +141,7 @@ function copyUpdaterObj<
     update,
   };
 }
-
+// export function copyUpdater<U extends Updater>(updater: U): U;
 export function copyUpdater<
   Type = any,
   Args extends any[] = any[],

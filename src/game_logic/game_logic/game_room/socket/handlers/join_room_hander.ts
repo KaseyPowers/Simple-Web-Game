@@ -1,16 +1,16 @@
 import type {
   EventsWithAck,
-  ServerHelperOptions,
+  ServerHandlerObj,
 } from "~/socket_io/socket_util_types";
 
 import socketRoomUtils from "~/socket_io/room_utils";
 import { eventErrorHandler } from "~/socket_io/socket_utils";
 
-import { type RoomOrId, utils as managerUtils } from "../../room_manager";
-import { type GameRoomI, utils as roomUtils } from "../../core/room";
+import { type RoomOrId } from "../../core/store_utils";
+import { type GameRoomI } from "../../core/room";
+import { utils } from "../../core";
 
-import type { PlayerHelperTypes } from "../helpers/player_helpers";
-import type { LeaveRoomHelperTypes } from "../helpers/leave_room_helpers";
+import type { GameRoomHelpers } from "../helpers";
 
 export interface ServerEventTypes {
   ServerToClientEvents: {
@@ -26,21 +26,19 @@ export interface ServerEventTypes {
 }
 // will treat creating a room with joining since they overlap so much
 export default function joinRoomHandler(
-  { socket }: ServerHelperOptions,
+  { socket }: ServerHandlerObj,
   // adding pick to only grab what we need
-  helpers: Pick<PlayerHelperTypes, "addPlayer"> &
-    Pick<LeaveRoomHelperTypes, "thisSocketLeaveRoom">,
+  helpers: GameRoomHelpers,
 ) {
   // join room logic (used by join and create events)
   async function joinRoom(input: RoomOrId) {
-    const room = managerUtils.findRoomValidated(input);
+    const room = utils.getRoom(input);
     // socket leave room if not in the new room
     await helpers.thisSocketLeaveRoom.ifNotRoom(room.roomId);
     // add this player to the room
     helpers.addPlayer(room, socket.data.userId);
     void socketRoomUtils.joinGameRoom(socket, room.roomId);
-    socket.data.roomId = room.roomId;
-    socket.emit("room_info", roomUtils.getGameRoomFromData(room));
+    socket.emit("room_info", utils.getGameRoomFromData(room));
   }
   // this event just joins the provided room
   socket.on(
@@ -54,7 +52,7 @@ export default function joinRoomHandler(
     "create_room",
     eventErrorHandler(async () => {
       // create the new room
-      const room = managerUtils.addNewRoom();
+      const room = utils.addNewRoom();
       // TODO: Get the joinRoom util
       await joinRoom(room);
     }),

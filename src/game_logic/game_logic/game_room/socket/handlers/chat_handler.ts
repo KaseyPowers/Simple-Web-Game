@@ -1,13 +1,12 @@
 import type {
   EventsWithAck,
-  ServerHelperOptions,
+  ServerHandlerObj,
 } from "~/socket_io/socket_util_types";
 import { eventErrorHandler } from "~/socket_io/socket_utils";
 import socketRoomUtils from "~/socket_io/room_utils";
 
 import { type ChatInputI } from "../../core/chat";
-import type { PlayerHelperTypes } from "../helpers/player_helpers";
-import { storeUpdaters } from "../../manager";
+import type { GameRoomHelpers } from "../helpers";
 
 interface SharedEvents {
   /** Message works both ways, from sender and then to propogate to the rest of the room */
@@ -20,10 +19,11 @@ export interface ServerEventTypes {
 
 // will treat creating a room with joining since they overlap so much
 export default function joinRoomHandler(
-  { socket }: ServerHelperOptions,
+  { socket }: ServerHandlerObj,
   // adding pick to only grab what we need
-  helpers: Pick<PlayerHelperTypes, "onPlayerAction">,
+  helpers: GameRoomHelpers,
 ) {
+  // chat handler is pretty simple, won't require any helper wrappers
   socket.on(
     "message",
     eventErrorHandler((inputMsg) => {
@@ -37,7 +37,8 @@ export default function joinRoomHandler(
           `Invalid message! Socket received a message from: ${inputMsg.userId}, but socket is tied to userId: ${socket.data.userId}`,
         );
       }
-      const [room] = storeUpdaters.addChatMessage(inputMsg.roomId, inputMsg);
+      // will always trigger a change so just get room for following steps
+      const [room] = helpers.addChatMessage(inputMsg.roomId, inputMsg);
       socketRoomUtils
         .toGameRoom(socket, inputMsg.roomId)
         .emit("message", inputMsg);

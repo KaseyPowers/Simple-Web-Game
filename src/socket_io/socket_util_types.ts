@@ -28,7 +28,13 @@ export type EventsWithAck<T> = {
     : never;
 };
 
-export interface ServerHelperOptions {
+export interface ServerHandlerObj {
   io: ServerType;
   socket: ServerSocketType;
 }
+
+// common function type for handlers
+export type handlersFunction = (
+  serverObj: ServerHandlerObj,
+  ...args: any[]
+) => void;

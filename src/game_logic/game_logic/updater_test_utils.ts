@@ -1,3 +1,4 @@
+import { jest } from "@jest/globals";
 import type {
   Updater,
   UpdaterResponse,
@@ -5,6 +6,30 @@ import type {
 } from "./updater_types";
 
 import { cloneDeep } from "lodash";
+import { updaterFromObj, getCommonUpdaterObj } from "./updater";
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export type MockedUpdater<
+  U extends Updater<any, any[], any> = Updater<any, any, any>,
+> = Omit<U, "inputParser" | "coreInnerFn"> & {
+  inputParser: jest.Mocked<U["inputParser"]>;
+  coreInnerFn: jest.Mocked<U["coreInnerFn"]>;
+};
+/* eslint-enable@typescript-eslint/no-explicit-any */
+
+export function makeTestUpdater<
+  U extends Updater<any, any[], any>,
+>(): MockedUpdater<U> {
+  return updaterFromObj({
+    inputParser: jest.fn<U["inputParser"]>() as unknown as U["inputParser"],
+    onChangeFns: [],
+    coreInnerFn: jest.fn<U["coreInnerFn"]>() as unknown as U["coreInnerFn"],
+    ...getCommonUpdaterObj(),
+  }) as U & {
+    inputParser: jest.Mocked<U["inputParser"]>;
+    coreInnerFn: jest.Mocked<U["coreInnerFn"]>;
+  };
+}
 
 // wrapper to verify that the call preserves the readonly aspect of the input room
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

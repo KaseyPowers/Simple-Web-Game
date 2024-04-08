@@ -1,63 +1,18 @@
 import type {
   EventsWithAck,
-  ServerHelperOptions,
+  ServerHandlerObj,
 } from "~/socket_io/socket_util_types";
 
-import type {
-  ServerSocketType,
-  ServerType,
-  RemoteSocketType,
-} from "~/socket_io/socket_types";
-
-import socketRoomUtils from "~/socket_io/room_utils";
-import { fetchUserSockets, hasSocketsInRoom } from "~/socket_io/socket_utils";
+import { hasSocketsInRoom } from "~/socket_io/socket_utils";
 
 import { type RoomOrId } from "../../core/store_utils";
 import { utils } from "../../core";
 
-import type { PlayerHelperTypes } from "./player_helpers";
+import type { CoreUpdaterHelpers } from "./core_updaters";
 
-function socketLeaveRoom(
-  socket: ServerSocketType | RemoteSocketType,
-  roomId: string,
-) {
-  // assume that socket.leave will ignore the call if socket isn't in the room
-  void socket.leave(socketRoomUtils.roomId(roomId));
-  if (socket.data.roomId === roomId) {
-    delete socket.data.roomId;
-  }
-  // emit the leave event to this socket's client
-  socket.emit("leave_room", roomId);
-}
-// will have all sockets associated with this user leave the room
-async function userIdLeaveRoom(io: ServerType, userId: string, roomId: string) {
-  // this depends on new sockets joining a room for their userId
-  const userSockets = await fetchUserSockets(io, userId);
-  for (const socket of userSockets) {
-    socketLeaveRoom(socket, roomId);
-  }
-}
-
-// while userId will make sure all sockets for userId leave the room, this makes sure that all sockets for a roomId leave
-export async function allSocketsLeaveRoom(io: ServerType, roomId: string) {
-  const roomSockets = await socketRoomUtils
-    .inGameRoom(io, roomId)
-    .fetchSockets();
-  for (const socket of roomSockets) {
-    socketLeaveRoom(socket, roomId);
-  }
-}
-
-interface SharedEvents {
-  /** Leave room:
-   * Client->Server: informing room that user is leaving the room by choice
-   * Server->Client: informing client that user is leaving a room.
-   * - Right now this would only happen if user left room with multiple tabs open so all tabs will leave.
-   * - Potential other uses would be if a user get's kicked out of the room by some means.
-   *
-   */
-  leave_room: (roomId: string) => void;
-}
+import socketLeaveRoom, { type SharedEvents } from "./utils/socket_leave_room";
+import userIdLeaveRoom from "./utils/user_id_leave_room";
+import allSocketsLeaveRoom from "./utils/all_sockets_leave_room";
 
 export interface ServerEventTypes {
   ServerToClientEvents: SharedEvents;
@@ -65,8 +20,8 @@ export interface ServerEventTypes {
 }
 // will treat creating a room with joining since they overlap so much
 export default function getLeaveRoomHelpers(
-  { io, socket }: ServerHelperOptions,
-  helpers: PlayerHelperTypes,
+  { io, socket }: ServerHandlerObj,
+  helpers: Pick<CoreUpdaterHelpers, "removePlayer">,
 ) {
   // helper to have this socket's user fully leave the room
   async function leaveRoom(input: RoomOrId) {
@@ -116,7 +71,7 @@ export default function getLeaveRoomHelpers(
     }
   };
 
-  // only have this socket leave the room if it's not tied to the input room
+  // only have this socket leave it's current room if it's not tied to the input room
   thisSocketLeaveRoom.ifNotRoom = (input: RoomOrId) => {
     const inputRoomId = utils.inputRoomId(input);
     const { roomId } = socket.data;

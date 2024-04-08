@@ -11,6 +11,7 @@ import type {
 } from "./socket_types";
 import { baseClientOptions } from "./socket_configs";
 import buildServerSocket, { getSocketServer } from "./server";
+import socketRoomUtils from "./room_utils";
 
 export function waitFor<T>(
   socket: BaseServerSocket | BaseClientSocket,
@@ -25,13 +26,23 @@ export function waitFor<T>(
   });
 }
 
-export function getEventListener(
+export function getEventListener<T>(
   socket: BaseServerSocket | BaseClientSocket,
   event: string,
 ) {
   const listener = jest.fn();
-  socket.on(event, listener);
+  socket.on(event, (...args) => {
+    const output = (args.length <= 1 ? args[0] : args) as T;
+    listener(output);
+  });
   return listener;
+}
+
+// creates a pause to make sure eventListeners have a chance to be heard
+export function eventsPause() {
+  return new Promise<void>((resolve) => {
+    setTimeout(() => resolve(), 0.5 * 1000); // half second delay
+  });
 }
 
 type ServerSocketResolver = (
@@ -40,7 +51,7 @@ type ServerSocketResolver = (
 
 // type getClientSocketFn = () => ClientSocket;
 // test setup for initializing the io server
-export function testUseSocketIOServer(skipHandlers?: boolean) {
+export function testUseSocketIOServer(withHandlers = false) {
   // before all, set up an httpServer
   let httpServer: Server;
   // listen for the port to generate this path, that way multiple clients can be generated
@@ -113,7 +124,9 @@ export function testUseSocketIOServer(skipHandlers?: boolean) {
       expect(serverSocket).toBeDefined();
       expect(serverSocket.data.userId).toBe(userId);
       expect(serverSocket.id).toBe(clientSocket.id);
-      expect(serverSocket.rooms.has(userId)).toBeTruthy();
+      expect(
+        serverSocket.rooms.has(socketRoomUtils.getUserIdRoom(userId)),
+      ).toBeTruthy();
       return {
         serverSocket,
         clientSocket,
@@ -126,9 +139,9 @@ export function testUseSocketIOServer(skipHandlers?: boolean) {
     httpServer = createServer();
     const httpServerAddr = httpServer.listen().address() as AddressInfo;
     clientPath = `http://localhost:${httpServerAddr.port}`;
-    io = skipHandlers
-      ? getSocketServer(httpServer)
-      : buildServerSocket(httpServer);
+    io = withHandlers
+      ? buildServerSocket(httpServer)
+      : getSocketServer(httpServer, () => void {});
     // set up the connection listener for this socket
     io.on("connection", (socket: ServerSocketType) => {
       const { userId } = socket.data;
