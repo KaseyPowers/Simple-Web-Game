@@ -1,3 +1,4 @@
+import type { ServerType, ServerSocketType } from "~/socket_io/socket_types";
 import type { ServerHandlerObj } from "~/socket_io/socket_util_types";
 import socketRoomUtils from "~/socket_io/room_utils";
 import {
@@ -21,39 +22,60 @@ import { utils, updaters, playerUpdaterKeys } from "../../core";
 import { allGameRooms } from "../../../shared_store";
 import { UpdaterResponse } from "~/game_logic/game_logic/updater_types";
 import type { CoreUpdaterHelpers } from "./core_updaters";
-import getLeaveRoomHelpers, { socketLeaveRoom } from "./leave_room_helpers";
+
+import socketLeaveRoom from "./utils/socket_leave_room";
+import userIdLeaveRoom from "./utils/user_id_leave_room";
+import allSocketsLeaveRoom from "./utils/all_sockets_leave_room";
+import { hasSocketsInRoom } from "~/socket_io/socket_utils";
+
+import getLeaveRoomHelpers, {
+  LeaveRoomHelperTypes,
+} from "./leave_room_helpers";
+
+// mock socket logics
+jest.mock("~/socket_io/socket_utils");
+jest.mock("./utils/socket_leave_room");
+jest.mock("./utils/user_id_leave_room");
+jest.mock("./utils/all_sockets_leave_room");
 
 const testRoomId = "test_game_room_id";
 const testUserId = "test_user_id";
-const testUserIds = [testUserId, "test_user_1", "test_user_2", "test_user_3"];
 
 type ExpectedHelpers = Parameters<typeof getLeaveRoomHelpers>[1];
 
 // set timeout to 10 seconds
-jest.setTimeout(10 * 1000);
+// jest.setTimeout(10 * 1000);
+
+function makeFakeSocket(userId: string) {
+  return {
+    data: {
+      userId,
+    },
+  } as ServerSocketType;
+}
+
+const mockIO = "I'm a server" as unknown as ServerType;
 
 describe("leaveRoomHelpers", () => {
-  const { getIO, getBothSockets } = testUseSocketIOServer();
-  let io: ReturnType<typeof getIO>;
   let testRoom: GameRoomDataI;
   // will create 1 set of sockets for each userId defined
-  let testMainSockets: Awaited<ReturnType<typeof getBothSockets>>;
-  let testUserSockets: Awaited<ReturnType<typeof getBothSockets>>[];
+  let testMainSocket: ServerSocketType;
 
   let mockedRemovePlayer: jest.Mocked<
     UpdaterFn<GameRoomDataI, [userId: string]>
   >;
-
   let mockedHelpers: ExpectedHelpers;
 
-  beforeEach(async () => {
+  beforeEach(() => {
+    // clear mocks before each test
+    jest.clearAllMocks();
+    // clear store and add testRoom
     Object.keys(allGameRooms).forEach((key) => {
       delete allGameRooms[key];
     });
     testRoom = newGameRoomData(testRoomId);
-    allGameRooms[testRoomId] = testRoom;
 
-    // mock the outer function
+    // mock the helper logic
     mockedRemovePlayer = jest.fn(
       (input, userId): UpdaterResponse<GameRoomDataI> => {
         const [room] = Array.isArray(input) ? input : [input];
@@ -67,266 +89,213 @@ describe("leaveRoomHelpers", () => {
         return [newRoom, true];
       },
     );
-
     mockedHelpers = {
       removePlayer: mockedRemovePlayer,
     } as ExpectedHelpers;
-
-    io = getIO();
     // initiate the sockets needed
-    testUserSockets = [];
-    for (const userId of testUserIds) {
-      const sockets = await getBothSockets(userId);
-      // assign first sockets to main variable
-      if (testUserSockets.length === 0) {
-        testMainSockets = sockets;
-      }
-      testUserSockets.push(sockets);
-    }
-  });
-  it("verify some setup assumptions", () => {
-    expect(testMainSockets.serverSocket.data.userId).toBe(testUserId);
+    testMainSocket = makeFakeSocket(testUserId);
   });
 
   describe("leaveRoom", () => {
     it("should have user leave the room", async () => {
       // setup all users in the room
-      allGameRooms[testRoomId] = {
+      // with this we can expect utils that fetch from store to find the room data
+      const useTestRoom = {
         ...testRoom,
-        players: testUserIds,
+        players: [testUserId, "other_user"],
       };
-      // have all the sockets join the room
-      for (const sockets of testUserSockets) {
-        await socketRoomUtils.joinGameRoom(sockets.serverSocket, testRoomId);
-      }
+      allGameRooms[testRoomId] = useTestRoom;
       // get leaveRoom helper for first user
       const { leaveRoom } = getLeaveRoomHelpers(
         {
-          io,
-          socket: testMainSockets.serverSocket,
+          io: mockIO,
+          socket: testMainSocket,
         },
         mockedHelpers,
       );
 
-      // validate current state before leaving
-      expect(
-        testMainSockets.serverSocket.rooms.has(
-          socketRoomUtils.getGameRoom(testRoomId),
-        ),
-      ).toBeTruthy();
       expect(allGameRooms[testRoomId].players).toContain(testUserId);
-
+      expect(allGameRooms[testRoomId].players.length).toBeGreaterThanOrEqual(2);
+      expect(testMainSocket.data.userId).toBe(testUserId);
       await leaveRoom(testRoomId);
       // after leaving, gameRoom shouldn't have userId anymore
       // NOTE: This is just confirming the mockImplementation?
       expect(allGameRooms[testRoomId].players).not.toContain(testUserId);
-      expect(
-        testMainSockets.serverSocket.rooms.has(
-          socketRoomUtils.getGameRoom(testRoomId),
-        ),
-      ).toBeFalsy();
+      expect(allGameRooms[testRoomId].players).not.toHaveLength(0);
+      expect(mockedRemovePlayer).toHaveBeenCalled();
+      expect(mockedRemovePlayer).toHaveBeenCalledWith(useTestRoom, testUserId);
+      expect(userIdLeaveRoom).toHaveBeenCalled();
+      expect(userIdLeaveRoom).toHaveBeenCalledWith(
+        mockIO,
+        testUserId,
+        testRoomId,
+      );
+      expect(allSocketsLeaveRoom).not.toHaveBeenCalled();
+    });
+    it("should call userIdLeaveRoom even if not in store", async () => {
+      // get leaveRoom helper for first user
+      const { leaveRoom } = getLeaveRoomHelpers(
+        {
+          io: mockIO,
+          socket: testMainSocket,
+        },
+        mockedHelpers,
+      );
+      expect(allGameRooms[testRoomId]).toBeUndefined();
+      expect(testMainSocket.data.userId).toBe(testUserId);
+      await leaveRoom(testRoomId);
+      // verify the socket util calls
+      expect(userIdLeaveRoom).toHaveBeenCalled();
+      expect(userIdLeaveRoom).toHaveBeenCalledWith(
+        mockIO,
+        testUserId,
+        testRoomId,
+      );
+      expect(allSocketsLeaveRoom).not.toHaveBeenCalled();
     });
 
-    it("should have all sockets for user leave the room", async () => {
+    it("should call allSocketsLeaveRoom if room becomes empty", async () => {
       // setup all users in the room
-      allGameRooms[testRoomId] = {
-        ...testRoom,
-        players: testUserIds,
-      };
-
-      const usersSockets = [testMainSockets];
-      // create a few extra sockets for the user
-      for (let i = 0; i < 3; i += 1) {
-        const sockets = await getBothSockets(testUserId);
-        usersSockets.push(sockets);
-        testUserSockets.push(sockets);
-      }
-
-      // have all the sockets join the room
-      for (const sockets of testUserSockets) {
-        await socketRoomUtils.joinGameRoom(sockets.serverSocket, testRoomId);
-      }
-      // make sure all the sockets were joined correctly
-      testUserSockets.forEach((sockets) => {
-        expect(
-          sockets.serverSocket.rooms.has(
-            socketRoomUtils.getGameRoom(testRoomId),
-          ),
-        ).toBeTruthy();
-        expect(sockets.serverSocket.data.roomId).toBe(testRoomId);
-      });
-      // these sockets break the expected battern so add them after the other setup validation test
-      // add more sockets for user that either have data set or roomId set
-      // we know these will work because we grab socket by userId
-      const justDataSockets = await getBothSockets(testUserId);
-      justDataSockets.serverSocket.data.roomId = testRoomId;
-      usersSockets.push(justDataSockets);
-      testUserSockets.push(justDataSockets);
-      const justRoomSockets = await getBothSockets(testUserId);
-      await justRoomSockets.serverSocket.join(
-        socketRoomUtils.getGameRoom(testRoomId),
-      );
-      usersSockets.push(justRoomSockets);
-      testUserSockets.push(justRoomSockets);
-
-      // get leaveRoom helper for first user
-      const { leaveRoom } = getLeaveRoomHelpers(
-        {
-          io,
-          socket: testMainSockets.serverSocket,
-        },
-        mockedHelpers,
-      );
-
-      // validate current state before leaving
-      expect(allGameRooms[testRoomId].players).toContain(testUserId);
-
-      await leaveRoom(testRoomId);
-      // after leaving, gameRoom shouldn't have userId anymore
-      // NOTE: This is just confirming the mockImplementation?
-      expect(allGameRooms[testRoomId].players).not.toContain(testUserId);
-      usersSockets.forEach((sockets) => {
-        expect(
-          sockets.serverSocket.rooms.has(
-            socketRoomUtils.getGameRoom(testRoomId),
-          ),
-        ).toBeFalsy();
-      });
-
-      const allSockets = await io.fetchSockets();
-      for (const socket of allSockets) {
-        // flags for if userId or in room
-        const isTestUser = socket.data.userId === testUserId;
-        const isInRoom = socket.data.roomId === testRoomId;
-        // this check only works if all sockets are in this room
-        expect(isInRoom).not.toBe(isTestUser);
-        // make sure all of the main users are in the room for their userId
-        expect(
-          socket.rooms.has(socketRoomUtils.getUserIdRoom(testUserId)),
-        ).toBe(isTestUser);
-        // make sure they aren't in the gameRoom's room if their data doesn't reflect that
-        expect(socket.rooms.has(socketRoomUtils.getGameRoom(testRoomId))).toBe(
-          isInRoom,
-        );
-      }
-    });
-
-    it("if only player in room, will close room and remove all sockets", async () => {
-      // setup just this user in the room
-      allGameRooms[testRoomId] = {
+      // with this we can expect utils that fetch from store to find the room data
+      const useTestRoom = {
         ...testRoom,
         players: [testUserId],
       };
-
-      // have all the sockets join the room (even though they aren't all in the gameRoom)
-      for (const sockets of testUserSockets) {
-        await socketRoomUtils.joinGameRoom(sockets.serverSocket, testRoomId);
-      }
-
-      // make a new socket tied to a different room so that not all sockets are tied to this room
-      const randomNewSockets = await getBothSockets("new_user_id");
-      await socketRoomUtils.joinGameRoom(
-        randomNewSockets.serverSocket,
-        "other_room_id",
-      );
-
+      allGameRooms[testRoomId] = useTestRoom;
       // get leaveRoom helper for first user
       const { leaveRoom } = getLeaveRoomHelpers(
         {
-          io,
-          socket: testMainSockets.serverSocket,
+          io: mockIO,
+          socket: testMainSocket,
         },
         mockedHelpers,
       );
 
-      // validate current state before leaving
-      for (const sockets of testUserSockets) {
-        expect(
-          sockets.serverSocket.rooms.has(
-            socketRoomUtils.getGameRoom(testRoomId),
-          ),
-        ).toBeTruthy();
-      }
-
-      expect(allGameRooms[testRoomId].players).toContain(testUserId);
+      expect(allGameRooms[testRoomId].players).toEqual([testUserId]);
+      expect(testMainSocket.data.userId).toBe(testUserId);
       await leaveRoom(testRoomId);
-      // after leaving, gameRoom shouldn't have userId anymore
+      // after leaving, gameRoom shouldn't have userId anymore, since that was only player, should remove from the store
       // NOTE: This is just confirming the mockImplementation?
-      // removed room will be deleted so this is undefined
       expect(allGameRooms[testRoomId]).toBeUndefined();
-      // all sockets tied to this room will be removed from the room
-
-      const allSockets = await io.fetchSockets();
-      for (const socket of allSockets) {
-        // expect all sockets to not be a part of this room
-        expect(socket.data.roomId).not.toBe(testRoomId);
-        expect(
-          socket.rooms.has(socketRoomUtils.getGameRoom(testRoomId)),
-        ).toBeFalsy();
-      }
+      expect(mockedRemovePlayer).toHaveBeenCalled();
+      expect(mockedRemovePlayer).toHaveBeenCalledWith(useTestRoom, testUserId);
+      expect(allSocketsLeaveRoom).toHaveBeenCalled();
+      expect(allSocketsLeaveRoom).toHaveBeenCalledWith(mockIO, testRoomId);
+      expect(userIdLeaveRoom).not.toHaveBeenCalled();
     });
   });
 
   describe("thisSocketLeaveRoom", () => {
-    it("should have socket leave the room", async () => {
-      // setup all users in the room
-      allGameRooms[testRoomId] = {
-        ...testRoom,
-        players: testUserIds,
-      };
-
-      const newUsersSockets = [];
-      // create a few extra sockets for the user
-      for (let i = 0; i < 3; i += 1) {
-        const sockets = await getBothSockets(testUserId);
-        newUsersSockets.push(sockets);
-        testUserSockets.push(sockets);
-      }
-      // have all the sockets join the room
-      for (const sockets of testUserSockets) {
-        await socketRoomUtils.joinGameRoom(sockets.serverSocket, testRoomId);
-      }
-      // get thisSocketLeaveRoom helper for first user
-      const { thisSocketLeaveRoom } = getLeaveRoomHelpers(
+    let thisSocketLeaveRoom: LeaveRoomHelperTypes["thisSocketLeaveRoom"];
+    let mockedHasSocketsInRoom: jest.MockedFunction<typeof hasSocketsInRoom>;
+    beforeEach(() => {
+      // give this a default truthy return value so leaveRoom isn't called until we want it to
+      mockedHasSocketsInRoom = jest
+        .mocked(hasSocketsInRoom)
+        .mockReturnValue(Promise.resolve(true));
+      testMainSocket.data.roomId = testRoomId;
+      // get heleprs for the user
+      // can't spyOn leaveRoom because thisSocketLeaveRoom calls reference from before function defined I think
+      const leaveRoomHelpers = getLeaveRoomHelpers(
         {
-          io,
-          socket: testMainSockets.serverSocket,
+          io: mockIO,
+          socket: testMainSocket,
         },
         mockedHelpers,
       );
-
-      // validate current state before leaving
-      expect(
-        testMainSockets.serverSocket.rooms.has(
-          socketRoomUtils.getGameRoom(testRoomId),
-        ),
-      ).toBeTruthy();
-      expect(testMainSockets.serverSocket.data.roomId).toBe(testRoomId);
-      expect(allGameRooms[testRoomId].players).toContain(testUserId);
+      thisSocketLeaveRoom = leaveRoomHelpers.thisSocketLeaveRoom;
+      // // eslint-disable-next-line @typescript-eslint/no-empty-function
+      // spiedLeaveRoom = jest
+      //   .spyOn(leaveRoomHelpers, "leaveRoom")
+      //   .mockImplementation(() => Promise.resolve());
+    });
+    it("should call socketLeaveRoom", async () => {
+      expect(testMainSocket.data.roomId).toBe(testRoomId);
 
       await thisSocketLeaveRoom();
 
-      expect(testMainSockets.serverSocket.data.roomId).toBeUndefined();
-      expect(
-        testMainSockets.serverSocket.rooms.has(
-          socketRoomUtils.getGameRoom(testRoomId),
-        ),
-      ).toBeFalsy();
-      // because user has other sockets in the room, will not change the room
-      expect(allGameRooms[testRoomId].players).toContain(testUserId);
-      // all other sockets for user leave the room
-      newUsersSockets.forEach((usersSockets) => {
-        expect(usersSockets.serverSocket.data.userId).toBe(testUserId);
-        expect(usersSockets.serverSocket.data.roomId).toBe(testRoomId);
-        expect(
-          usersSockets.serverSocket.rooms.has(
-            socketRoomUtils.getGameRoom(testRoomId),
-          ),
-        ).toBeTruthy();
-      });
+      expect(socketLeaveRoom).toHaveBeenCalled();
+      expect(socketLeaveRoom).toHaveBeenCalledWith(testMainSocket, testRoomId);
+
+      expect(mockedHasSocketsInRoom).toHaveBeenCalledTimes(1);
+      // not sure this would work?
+      await expect(mockedHasSocketsInRoom.mock.results[0]?.value).resolves.toBe(
+        true,
+      );
+      // since we didn't modify the state store, leaveRoom will always call userIdLeaveRoom. use this to verify if leaveRoom was called
+      expect(userIdLeaveRoom).not.toHaveBeenCalled();
+    });
+    it("should call leaveRoom if user has no other sockets in room", async () => {
+      expect(testMainSocket.data.roomId).toBe(testRoomId);
+      // resolve to false so that next step is hit
+      mockedHasSocketsInRoom.mockReturnValueOnce(Promise.resolve(false));
+
+      await thisSocketLeaveRoom();
+
+      expect(socketLeaveRoom).toHaveBeenCalled();
+      expect(socketLeaveRoom).toHaveBeenCalledWith(testMainSocket, testRoomId);
+
+      expect(mockedHasSocketsInRoom).toHaveBeenCalledTimes(1);
+      // not sure this would work?
+      await expect(mockedHasSocketsInRoom.mock.results[0]?.value).resolves.toBe(
+        false,
+      );
+      expect(userIdLeaveRoom).toHaveBeenCalled();
+      expect(userIdLeaveRoom).toHaveBeenCalledWith(
+        mockIO,
+        testUserId,
+        testRoomId,
+      );
     });
 
-    it.todo("will call leaveRoom if user has no other sockets in room");
+    it("thisSocketLeaveRoom.ifRoom will only leaveRoom if socket is in the given room", async () => {
+      expect(testMainSocket.data.roomId).toBe(testRoomId);
+
+      const otherRoomId = "Other_test_room";
+      expect(otherRoomId).not.toEqual(testRoomId);
+
+      await thisSocketLeaveRoom.ifRoom(otherRoomId);
+
+      expect(socketLeaveRoom).not.toHaveBeenCalled();
+
+      await thisSocketLeaveRoom.ifRoom(testRoomId);
+      // these values should only have been run once even though thisSocetLeaveRoom.ifRoom was called twice
+      expect(socketLeaveRoom).toHaveBeenCalledTimes(1);
+      expect(socketLeaveRoom).toHaveBeenCalledWith(testMainSocket, testRoomId);
+
+      expect(mockedHasSocketsInRoom).toHaveBeenCalledTimes(1);
+      // not sure this would work?
+      await expect(mockedHasSocketsInRoom.mock.results[0]?.value).resolves.toBe(
+        true,
+      );
+      // since we didn't modify the state store, leaveRoom will always call userIdLeaveRoom. use this to verify if leaveRoom was called
+      expect(userIdLeaveRoom).not.toHaveBeenCalled();
+    });
+
+    it("thisSocketLeaveRoom.ifNotRoom will only leaveRoom if socket is not in the given room", async () => {
+      expect(testMainSocket.data.roomId).toBe(testRoomId);
+
+      const otherRoomId = "Other_test_room";
+      expect(otherRoomId).not.toEqual(testRoomId);
+
+      await thisSocketLeaveRoom.ifNotRoom(testRoomId);
+
+      expect(socketLeaveRoom).not.toHaveBeenCalled();
+
+      await thisSocketLeaveRoom.ifNotRoom(otherRoomId);
+
+      // these values should only have been run once even though thisSocetLeaveRoom.ifRoom was called twice
+      expect(socketLeaveRoom).toHaveBeenCalledTimes(1);
+      expect(socketLeaveRoom).toHaveBeenCalledWith(testMainSocket, testRoomId);
+
+      expect(mockedHasSocketsInRoom).toHaveBeenCalledTimes(1);
+      // not sure this would work?
+      await expect(mockedHasSocketsInRoom.mock.results[0]?.value).resolves.toBe(
+        true,
+      );
+      // since we didn't modify the state store, leaveRoom will always call userIdLeaveRoom. use this to verify if leaveRoom was called
+      expect(userIdLeaveRoom).not.toHaveBeenCalled();
+    });
 
     it.todo(".ifRoom");
     it.todo(".ifNotRoom");

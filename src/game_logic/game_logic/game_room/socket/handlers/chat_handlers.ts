@@ -18,10 +18,10 @@ export interface ServerEventTypes {
 }
 
 // will treat creating a room with joining since they overlap so much
-export default function joinRoomHandler(
+export default function registerChatHandlers(
   { socket }: ServerHandlerObj,
   // adding pick to only grab what we need
-  helpers: GameRoomHelpers,
+  helpers: Pick<GameRoomHelpers, "addChatMessage" | "onPlayerAction">,
 ) {
   // chat handler is pretty simple, won't require any helper wrappers
   socket.on(

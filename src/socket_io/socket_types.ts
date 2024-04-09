@@ -9,9 +9,9 @@ import type { Socket as ClientSocket } from "socket.io-client";
 
 import type { ServerEventTypes as GameRoomEventTypes } from "~/game_logic/game_logic/game_room/socket/socket_types";
 
-type ServerToClientEvents = GameRoomEventTypes["ServerToClientEvents"];
+export type ServerToClientEvents = GameRoomEventTypes["ServerToClientEvents"];
 
-type ClientToServerEvents = GameRoomEventTypes["ClientToServerEvents"];
+export type ClientToServerEvents = GameRoomEventTypes["ClientToServerEvents"];
 
 interface InterServerEvents {
   // example fn here until we need a real one

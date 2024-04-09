@@ -13,7 +13,7 @@ export interface ChatInputI extends ChatDataI {
 
 export type GameRoomChatType = Readonly<ChatDataI[]>;
 
-function getChatFromInput(inputMsg: ChatInputI): Readonly<ChatDataI> {
+export function getChatFromInput(inputMsg: ChatInputI): Readonly<ChatDataI> {
   const { userId, msg } = inputMsg;
   return {
     userId,

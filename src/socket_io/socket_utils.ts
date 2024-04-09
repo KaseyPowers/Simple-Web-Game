@@ -33,7 +33,7 @@ export async function hasSocketsInRoom(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function eventErrorHandler<T extends any[]>(
   eventHandler: (...args: T) => void | Promise<void>,
-  alwaysCallCallback?: true,
+  alwaysCallCallback = true,
   defaultErrorMsg?: string,
 ) {
   // actual handler takes in the initial args, or will add an optional callbackFn to the end

@@ -1,7 +1,7 @@
-import type { RemoteSocketType, ServerType } from "~/socket_io/socket_types";
+import type { ServerType } from "~/socket_io/socket_types";
 import socketRoomUtils from "~/socket_io/room_utils";
 import socketLeaveRoom from "./socket_leave_room";
-import { allSocketsLeaveRoom } from "../leave_room_helper_utils";
+import allSocketsLeaveRoom from "./all_sockets_leave_room";
 
 jest.mock("./socket_leave_room");
 
