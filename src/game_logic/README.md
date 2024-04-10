@@ -51,18 +51,39 @@ The derived state is what is available for some subset of players to know
 current structure has a room instance with functions that handle changes,
 but the socket handlers logic can be pretty redundant, making it messy and complex.
 
-first let's devide the socket handlers and core structures:
+### GameRoom: Layered Updaters
 
-- socket handlers will handle as little as possible, only handling aspects specific to the socket and calling structured events
-- structure will have the main logic for everything
-  - how to connect the logic between structures?
+1. Initial Layer of udpaters devided by area of the room they handle: (chat, players, etc.)
 
-lets devide the core structure like this:
+- Creating an updater for each action: ex. add/remove player, setPlayerOffline
 
-- Full room contexts:
-  - Track creating and closing rooms
-- Track aspects of a room seperately
-  - Players (and status)
-  - Chat
-  - GameState
-  - etc.
+2. Extend all the updaters with store logic: `Retrieving from store` -> `Updating Store after change`
+3. Socket handlers get copy of each updater, can add listeners for changes:
+
+- ex. `players_update` event whenever one of the updaters that modifies the players part of store triggers a change
+
+### Game Logic Approach
+
+> Game Logic won't be able to do this in a flexible way like gameRoom. at least in splitting up updaters. Would need a central entrypoint to handle all the event types
+
+- can have similar level of updaters to start if we need to
+- However: will need a single entry point through the store/sockets
+  - this way we can use a shared logic for how we send updates to players based on the inputed action.
+
+#### Updater Behavior in game Logic
+
+Simple Updater = `inputState` -> `[outputState, hasChanges]`
+
+> Option 1: Simple Updater, onChange send new event data from old data: `inputAction` -> `outputAction`
+
+This would be pretty simple to make, but would need to be careful about conditional side effects of the action. Would also require more game logic running on the client to interpret that action into state changes
+
+> Option 2: Simple Updater, onChange get changes by comparing origina + final state and send minimal changes
+
+This would keep the updaters simple to make and would handle side-effects while keeping client side logic simpler too. However could be a bit more complex to figure out after the fact. (essentailly a copy+deep equality type function)
+
+> Option 3: Fancy Updater: calculate the output changes alongside individual changes
+
+This would be how we get the benefits of option 2 without needing to make a catch-all handler function.
+
+The downside being figuring out how to structure the tracked changes (they would need to be able to potentially track the change for each player)
