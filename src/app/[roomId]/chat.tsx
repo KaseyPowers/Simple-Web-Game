@@ -5,14 +5,15 @@ import clsx from "clsx";
 
 import { useSession } from "next-auth/react";
 
-import { useGameRoom } from "~/game_logic/game_room/context";
+import { useGameRoomCtx } from "~/game_logic/game_room/client/context";
 import { AvatarById } from "~/components/user.client";
 import SubmitInput from "~/components/submit_input";
 
 export default function Chat() {
   const session = useSession();
   const userId = session?.data?.user?.id;
-  const { room, sendMsg } = useGameRoom();
+
+  const { room, sendMsg } = useGameRoomCtx();
 
   if (!room) {
     throw new Error("Shouldn't render chat until room is available");
@@ -51,7 +52,7 @@ export default function Chat() {
         disabled={!sendMsg}
         onSubmit={(val) => {
           if (sendMsg) {
-            sendMsg(val);
+            void sendMsg(val);
           }
         }}
       />

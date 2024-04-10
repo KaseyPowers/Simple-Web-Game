@@ -7,7 +7,7 @@ import type {
 } from "socket.io";
 import type { Socket as ClientSocket } from "socket.io-client";
 
-import type { ServerEventTypes as GameRoomEventTypes } from "~/game_logic/game_logic/game_room/socket/socket_types";
+import type { ServerEventTypes as GameRoomEventTypes } from "~/game_logic/game_room/socket/socket_types";
 
 export type ServerToClientEvents = GameRoomEventTypes["ServerToClientEvents"];
 

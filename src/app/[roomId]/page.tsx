@@ -2,7 +2,7 @@
 
 import React from "react";
 
-import { useGameRoom } from "~/game_logic/game_room/context";
+import { useGameRoomCtx } from "~/game_logic/game_room/client/context";
 
 import Button from "~/components/button";
 import LoadingIndicator from "~/components/loading_indicator";
@@ -11,7 +11,7 @@ import { DisplayUserById } from "~/components/user.client";
 import Chat from "./chat";
 
 export default function Page({ params }: { params: { roomId: string } }) {
-  const { room, roomErr, loading } = useGameRoom();
+  const { room, roomErr, loading } = useGameRoomCtx();
 
   if (roomErr) {
     return (

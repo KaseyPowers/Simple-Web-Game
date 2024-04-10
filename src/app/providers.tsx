@@ -3,7 +3,7 @@ import React from "react";
 
 import { SessionProvider } from "next-auth/react";
 import { TRPCReactProvider } from "~/trpc/react";
-import { GameRoomProvider } from "~/game_logic/game_room/context";
+import { NextGameRoomProvider } from "~/game_logic/game_room/client/next_provider";
 
 import type { Session } from "next-auth";
 
@@ -17,7 +17,7 @@ export default function ContextProviders({
   return (
     <TRPCReactProvider>
       <SessionProvider basePath="/api/auth" session={session}>
-        <GameRoomProvider>{children}</GameRoomProvider>
+        <NextGameRoomProvider>{children}</NextGameRoomProvider>
       </SessionProvider>
     </TRPCReactProvider>
   );

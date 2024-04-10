@@ -6,14 +6,14 @@ import Page from "./page";
 
 // mocking setup
 jest.mock("next/navigation");
-jest.mock("~/game_logic/socket_io/client");
+jest.mock("~/socket_io/client_utils");
 
 describe("Landing Page", () => {
-  test("renders succesfully", () => {
+  it("renders succesfully", () => {
     render(<Page />);
   });
 
-  test("has create button", () => {
+  it("has create button", () => {
     render(<Page />);
     expect(screen.getByText("Create Room")).toHaveRole("button");
   });

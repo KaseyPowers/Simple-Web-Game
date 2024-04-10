@@ -2,7 +2,7 @@ import { Server } from "socket.io";
 
 import type { Server as NetServer } from "net";
 
-import { roomHandlers } from "../game_logic/game_room/room_handlers";
+import registerGameRoomHandlers from "~/game_logic/game_room/socket/game_room_handlers";
 
 import socketRoomUtils from "./room_utils";
 import type { handlersFunction } from "./socket_util_types";
@@ -47,7 +47,7 @@ export function getSocketServer(
 
 // // wrap the basic function and provide the actual handlers function used for app
 export default function buildServerSocket(netServer: NetServer): ServerType {
-  return getSocketServer(netServer, ({ io, socket }) => {
-    roomHandlers(io, socket);
+  return getSocketServer(netServer, (socketOptions) => {
+    registerGameRoomHandlers(socketOptions);
   });
 }

@@ -47,7 +47,7 @@ export function eventErrorHandler<T extends any[]>(
     // try/catch err seems to be unknown/any so until I figure out how that's typed I'll just ignore an any type here
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleError = (err: any) => {
-      console.log("handling error!", err);
+      // console.log("handling error!", err);
       let message = defaultErrorMsg ?? "Something went wrong!";
       if (typeof err === "string") {
         message = err;

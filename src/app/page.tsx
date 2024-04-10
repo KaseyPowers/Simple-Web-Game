@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import socket from "~/socket_io/client";
+import { socketEmit } from "~/socket_io/client_utils";
 
 import Button from "~/components/button";
 import SubmitInput from "~/components/submit_input";
@@ -11,7 +11,7 @@ export default function LandingPage() {
 
   // send create_room event, socket context will redirect when complete
   const onCreate = () => {
-    socket.emit("create_room");
+    void socketEmit("create_room");
   };
 
   return (
