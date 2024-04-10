@@ -1,34 +1,24 @@
-"use client";
+import { getServerAuthSession } from "~/server/auth";
 
-import { useRouter } from "next/navigation";
-import { socketEmit } from "~/socket_io/client_utils";
+import CreateRoomButton from "~/components/landing_page/create_room";
+import JoinRoomField from "~/components/landing_page/join_room";
 
-import Button from "~/components/button";
-import SubmitInput from "~/components/submit_input";
-
-export default function LandingPage() {
-  const router = useRouter();
-
-  // send create_room event, socket context will redirect when complete
-  const onCreate = () => {
-    void socketEmit("create_room");
-  };
+export default async function LandingPage() {
+  const session = await getServerAuthSession();
 
   return (
     <div className="container mx-auto pt-4 sm:px-4 lg:px-8">
       <div className="mx-auto flex w-2/3 flex-col items-center justify-center gap-4">
         <div>Landing Page: Explain how it works</div>
         <div>TODO: Card styles?</div>
-        <Button onClick={onCreate}>Create Room</Button>
-        <span>Note: update with better styles as chat is improved </span>
-        <SubmitInput
-          submitBtn="Join"
-          label="Join a game room"
-          placeholder="Room Code"
-          onSubmit={(roomId) => {
-            router.push(`/${roomId}`);
-          }}
-        />
+        {session ? (
+          <>
+            <CreateRoomButton />
+            <JoinRoomField />
+          </>
+        ) : (
+          <div>Log in to start playing!</div>
+        )}
       </div>
     </div>
   );

@@ -11,6 +11,9 @@ import ContextProviders from "./providers";
 import baseStyles from "~/styles/base_styles";
 import Navbar from "~/app/navbar";
 
+// this is a server-side provider definition so adding it here instead of in the `providers.tsx` file which is client-side rendered
+import { NextGameRoomProvider } from "~/game_logic/game_room/client/next_provider";
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
@@ -40,7 +43,9 @@ export default async function RootLayout({
         )}
       >
         <ContextProviders session={session}>
-          <Navbar>{children}</Navbar>
+          <NextGameRoomProvider session={session}>
+            <Navbar>{children}</Navbar>
+          </NextGameRoomProvider>
         </ContextProviders>
       </body>
     </html>

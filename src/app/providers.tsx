@@ -17,7 +17,7 @@ export default function ContextProviders({
   return (
     <TRPCReactProvider>
       <SessionProvider basePath="/api/auth" session={session}>
-        <NextGameRoomProvider>{children}</NextGameRoomProvider>
+        {children}
       </SessionProvider>
     </TRPCReactProvider>
   );
