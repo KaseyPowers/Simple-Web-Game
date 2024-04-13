@@ -13,7 +13,7 @@ import type { GameData } from "./classes";
 
 export type DerivedType<Type> =
   // Get Type from class if Type is class instance
-  Type extends GameData<any, unknown>
+  Type extends GameData<Base>
     ? ReturnType<Type["getDerived"]>
     : // map type object if object
       Type extends Record<any, unknown>
@@ -29,9 +29,9 @@ export type DerivedType<Type> =
 
 // the basic external data type, it just returns the the same structure but flattens out GameData shapes
 export type ExternalDataType<Type> =
-  Type extends GameData<any, unknown>
-    ? Type["data"]
-    : Type extends Record<any, unknown>
+  Type extends GameData<any>
+    ? ReturnType<Type["getData"]>
+    : Type extends Record<any, any>
       ? {
           [Property in keyof Type]: ExternalDataType<Type[Property]>;
         }
@@ -50,6 +50,7 @@ export type GameDataTypeArr = Array<GameDataType>;
 // NOTE: TBD if we want to support maps/set types
 // export type GameDataTypeSetMap = Set<GameDataType> | Map<unknown, GameDataType>;
 export interface GameDataTypeObj extends Record<string, GameDataType> {}
+
 export type BaseGameDataType =
   | GameDataTypePrimatives
   | GameDataTypeArr
@@ -57,8 +58,3 @@ export type BaseGameDataType =
   | GameDataTypeObj;
 
 export type GameDataType = BaseGameDataType | GameData<BaseGameDataType>;
-
-// if GameData takes in thw two input types, need to pull it out and then figure the dataType the same way we do inside the class
-export type GetGameDataType<T> = T extends GameData<infer Data> ? Data : never;
-export type GetGameDerivedType<T> =
-  T extends GameData<any, infer Derived> ? Derived : never;

@@ -6,12 +6,13 @@ import type {
 } from "./types";
 import { GameData } from "./classes";
 
-export function copyData(input: GameDataType): GameDataType {
+export function copyData<Type extends GameDataType>(input: Type): Type {
+  // if copying data that includes a class, return a copy of the class not just it's data
   if (input instanceof GameData) {
-    return input.copyData();
+    return GameData.copy(input);
   }
   if (Array.isArray(input)) {
-    return input.map((childVal) => copyData(childVal));
+    return input.map((childVal) => copyData(childVal)) as Type;
   }
   // return primative types
   if (
@@ -28,7 +29,7 @@ export function copyData(input: GameDataType): GameDataType {
     const val = input[key];
     output[key] = copyData(val);
     return output;
-  }, {} as GameDataTypeObj);
+  }, {} as GameDataTypeObj) as Type;
 }
 
 export function getData(input: GameDataType): ExternalDataType<typeof input> {
@@ -56,6 +57,7 @@ export function getData(input: GameDataType): ExternalDataType<typeof input> {
     return output;
   }, {} as ExternalDataType<GameDataTypeObj>);
 }
+
 // instead of a new class, just a wrapper around the derived function that memoizes it.
 export function memoizedGameData<T extends BaseGameDataType>(
   gameData: GameData<T>,
