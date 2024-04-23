@@ -1,3 +1,4 @@
+import { IfType } from "~/utils/types";
 export enum CARD_TYPES {
   PROMPT = "prompt",
   ANSWER = "answer",

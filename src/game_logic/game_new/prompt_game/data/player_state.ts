@@ -1,78 +1,86 @@
-import type { DeepPartial } from "~/utils/types";
-import type {
-  DataChangeType,
-  DerivedChangeType,
-  DerivedTypesObj,
-} from "../../data/types";
-import { DataClass, derivedObjPublicKey } from "../../data/data_class";
+import { DataClass } from "../../data_class";
 
-import type { AnswerCard, PromptCard, CardType } from "../game_types";
+import type { AnswerCard, PromptCard } from "../game_types";
 
 export interface PlayerStateI {
   // current hand of cards
   hand: AnswerCard[];
   // track the hands won with the winning prompt+answer combination. These will be copies of the cards, will still discard all cards to keep the total cards in play consistent (if using discard piles, could just reshuffle all cards when starting over and ignoring chance of duplicates of cards currently in someone's hand?)
-  won_hands: [PromptCard, AnswerCard][];
+  wonHands: [PromptCard, AnswerCard][];
 }
 
-type PlayerStateChangeType = Partial<PlayerStateI>;
+type PlayerStateChange = Partial<PlayerStateI>;
 
-export interface PublicPlayerState extends Omit<PlayerStateI, "hand"> {
+export interface PublicPlayerState {
   hand: number;
+  wonHands: number;
 }
 
-type DerivedObj = DerivedTypesObj<
-  PublicPlayerState,
-  PlayerStateI,
-  never,
-  "playerData"
->;
+type PublicPlayerStateChange = Partial<PublicPlayerState>;
 
-type DerivedChange = DerivedChangeType<DerivedObj, CardType>;
+type DerivedType = {
+  publicData: PublicPlayerState;
+  playerOnly: PlayerStateI;
+};
+type DerivedChange = {
+  publicData?: PublicPlayerStateChange;
+  playerOnly?: PlayerStateChange;
+};
 
 export class PlayerStateData extends DataClass<
   PlayerStateI,
-  DerivedObj,
-  PlayerStateChangeType,
+  DerivedType,
+  PlayerStateChange,
   DerivedChange
 > {
-  static newPlayerState() {
-    return new PlayerStateData({
-      hand: [],
-      won_hands: [],
-    });
-  }
-  createDerivedFrom(input: PlayerStateI): DerivedObj {
-    const { hand, won_hands } = input;
+  static initialData(): PlayerStateI {
     return {
-      [derivedObjPublicKey]: {
+      hand: [],
+      wonHands: [],
+    };
+  }
+  static createNew() {
+    return new PlayerStateData(PlayerStateData.initialData());
+  }
+
+  createDerivedData({ hand, wonHands }: PlayerStateI): DerivedType {
+    return {
+      publicData: {
         hand: hand.length,
-        won_hands,
+        wonHands: wonHands.length,
       },
-      playerData: {
-        // be sure to shallow copy the array
-        hand: [...hand],
-        won_hands,
+      playerOnly: {
+        hand,
+        wonHands,
       },
     };
   }
-  createPartialDerived(input: PlayerStateChangeType): DerivedChange {
-    const output: DerivedChange = {};
-    // assume that if it's in the state change, that it's different from the prevoius value (aka ignore equality checks)
 
-    // checking each key individually if it's defined
+  // NOTE: when calling this, we assume the incoming change is valid, and we skip validating against previous value. So even if an array changed from ["a", "b"] -> ["a", "c"] and so had the same length, will currently send the length anyway to keep it simple and better to send a little too much data until we determine we need to optomize payloads.
+  createDerivedChange(input: Partial<PlayerStateI>): DerivedChange {
+    let output: DerivedChange = {};
+
     if ("hand" in input) {
-      const newHand = input.hand!;
-      this.setDerivedValue(output, derivedObjPublicKey, "hand", newHand.length);
-      this.setDerivedValue(output, "playerData", "hand", newHand);
+      const hand = input.hand!;
+      output = this.mergeDerivedData(output, {
+        publicData: {
+          hand: hand.length,
+        },
+        playerOnly: {
+          hand,
+        },
+      });
     }
-    if ("won_hands" in input) {
-      this.setDerivedValueBulk(
-        output,
-        [derivedObjPublicKey, "playerData"],
-        "won_hands",
-        input.won_hands!,
-      );
+    if ("wonHands" in input) {
+      const wonHands = input.wonHands!;
+      output = this.mergeDerivedData(output, {
+        publicData: {
+          wonHands: wonHands.length,
+        },
+        playerOnly: {
+          wonHands,
+        },
+      });
     }
     return output;
   }
