@@ -1,35 +1,34 @@
-import { IfType } from "~/utils/types";
-export enum CARD_TYPES {
-  PROMPT = "prompt",
-  ANSWER = "answer",
-}
+export const allCardTypes = {
+  prompt: "PROMPT",
+  answer: "ANSWER",
+} as const;
+
+type CardTypesObj = typeof allCardTypes;
+export type CardTypeOptions = CardTypesObj[keyof CardTypesObj];
 
 interface BaseCardI {
   id: string;
 }
+
 export interface PromptCard extends BaseCardI {
-  type: CARD_TYPES.PROMPT;
+  type: CardTypesObj["prompt"];
   value: string[];
 }
 export interface AnswerCard extends BaseCardI {
-  type: CARD_TYPES.ANSWER;
+  type: CardTypesObj["answer"];
   value: string;
 }
 export type CardType = PromptCard | AnswerCard;
 
-export interface CardByType {
-  [CARD_TYPES.PROMPT]: PromptCard;
-  [CARD_TYPES.ANSWER]: AnswerCard;
-}
-
-export type CardDeck = {
-  [Key in CARD_TYPES]: CardByType[Key][];
+export type GetCardByType<Cards extends BaseCardI & { type: string }> = {
+  [T in Cards as T["type"]]: T;
 };
 
-// export interface CardDeck {
-//   [CARD_TYPES.PROMPT]: CardByType[CARD_TYPES.PROMPT][];
-//   [CARD_TYPES.ANSWER]: CardByType[CARD_TYPES.ANSWER][];
-// }
+export type CardByType = GetCardByType<CardType>;
+
+export type CardDeck = {
+  [Key in keyof CardByType]: CardByType[Key][];
+};
 
 export interface BaseMetaDataI {
   // self explanatory, all games would need to define rules for how many players they can handle
